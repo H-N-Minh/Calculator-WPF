@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="Calc2/Calc2.csproj" Id="e7a32f47-038f-4b31-9f63-2122ffeedb37" />
+  <Project Path="WpfApp1/SDK.csproj" />
+  <Project Path="WPFTutorial/Calculator.csproj" />
+  <Project Path="YT/YT.csproj" Id="c12d5757-a434-4f13-a152-e4afe0411591" />
+</Solution>

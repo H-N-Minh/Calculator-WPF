@@ -1,0 +1,66 @@
+﻿<Window x:Class="WPFTutorial.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:WPFTutorial"
+        xmlns:numpad="clr-namespace:WPFTutorial.View.NumPad"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="450" Width="300">
+    <Grid>
+
+        <Grid.RowDefinitions>
+            <RowDefinition/>
+            <RowDefinition/>
+            <RowDefinition/>
+            <RowDefinition/>
+            <RowDefinition/>
+            <RowDefinition/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition/>
+            <ColumnDefinition/>
+            <ColumnDefinition/>
+            <ColumnDefinition/>
+        </Grid.ColumnDefinitions>
+
+        <Cell:NumPadCell Grid.Row="0" Grid.Column="0" CellName=""/>
+        <Cell:NumPadCell Grid.Row="0" Grid.Column="1" CellName="CE"/>
+        <Cell:NumPadCell Grid.Row="0" Grid.Column="2" CellName="C"/>
+        <Cell:NumPadCell Grid.Row="0" Grid.Column="3" CellName="⌫"/>
+
+        <Cell:NumPadCell Grid.Row="1" Grid.Column="0" CellName=""/>
+        <Cell:NumPadCell Grid.Row="1" Grid.Column="1" CellName=""/>
+        <Cell:NumPadCell Grid.Row="1" Grid.Column="2" CellName=""/>
+        <Cell:NumPadCell Grid.Row="1" Grid.Column="3" CellName="/"/>
+
+        <Cell:NumPadCell Grid.Row="2" Grid.Column="0" CellName="7"/>
+        <Cell:NumPadCell Grid.Row="2" Grid.Column="1" CellName="8"/>
+        <Cell:NumPadCell Grid.Row="2" Grid.Column="2" CellName="9"/>
+        <Cell:NumPadCell Grid.Row="2" Grid.Column="3" CellName="x"/>
+
+        <Cell:NumPadCell Grid.Row="3" Grid.Column="0" CellName="4"/>
+        <Cell:NumPadCell Grid.Row="3" Grid.Column="1" CellName="5"/>
+        <Cell:NumPadCell Grid.Row="3" Grid.Column="2" CellName="6"/>
+        <Cell:NumPadCell Grid.Row="3" Grid.Column="3" CellName="-"/>
+
+        <Cell:NumPadCell Grid.Row="4" Grid.Column="0" CellName="1"/>
+        <Cell:NumPadCell Grid.Row="4" Grid.Column="1" CellName="2"/>
+        <Cell:NumPadCell Grid.Row="4" Grid.Column="2" CellName="3"/>
+        <Cell:NumPadCell Grid.Row="4" Grid.Column="3" CellName="+"/>
+
+        <Cell:NumPadCell Grid.Row="5" Grid.Column="0" CellName=""/>
+        <Cell:NumPadCell Grid.Row="5" Grid.Column="1" CellName="0"/>
+        <Cell:NumPadCell Grid.Row="5" Grid.Column="2" CellName=","/>
+        <Cell:NumPadCell Grid.Row="5" Grid.Column="3" CellName="=" CellColor="LightBlue"/>
+        
+        
+        <Grid.RowDefinitions>
+            <RowDefinition Height=".3*"/>
+            <RowDefinition Height=".05*"/>
+            <RowDefinition Height=".65*"/>
+        </Grid.RowDefinitions>
+
+        <numpad:NumPad Grid.Row="2" Loaded="NumPad_Loaded"/>
+    </Grid>
+</Window>
