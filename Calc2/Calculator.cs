@@ -102,6 +102,7 @@ namespace Calc2
             EqualCommandHandler = new RelayCommand(enterEqual);
         }
 
+
         // Commands methods
         private void enterEqual(object? parameter)
         {
