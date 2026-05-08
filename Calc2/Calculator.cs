@@ -135,14 +135,18 @@ public partial class Calculator : INotifyPropertyChanged
                         return false;
                     }
                     break;
-                case "BackSpace": case "CE": 
+                case "BackSpace":
+                    if (calculator.CurrentState == State.Operator || calculator.CurrentState == State.Start || calculator.CurrentState == State.Equal ||
+                        calculator.Buffer == 0) return false;
+                    break;
+                case "CE":
                     if (calculator.CurrentState == State.Operator) return false;
                     break;
                 case "*": case "/": case "-": case "+":
                     if (calculator.CurrentState == State.Start) return false;
                     break;
                 case ",":
-                    if (calculator.CurrentState == State.Float) return false;
+                    if (calculator.CurrentState == State.Float || calculator.CurrentState == State.Operator || calculator.CurrentState == State.Equal) return false;
                     break;
                 default:
                     throw new ArgumentException("Not implemented command", nameof(parameter));
@@ -166,9 +170,12 @@ public partial class Calculator : INotifyPropertyChanged
                 case "=":
                     calculator.EnterEqual();
                     break;
+                case "BackSpace":
+                    calculator.EnterBackSpace();
+                    break;
                 //case "+/-": 
                 //    break;
-                //case "BackSpace": case "CE":
+                // case "CE":
                 //    if (calculator.State == State.Operator) return false;
                 //    break;
                 case "*": case "/": case "-": case "+":

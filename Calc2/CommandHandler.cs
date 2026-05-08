@@ -60,57 +60,88 @@ public partial class Calculator
         CurrentOperator = Operator.Plus;
         CurrentState = State.Start;
     }
-    //private void EnterBackSpace(object? parameter)
-    //{
-    //    string number = Display;
-    //    // delete last digit
-    //    if (!string.IsNullOrEmpty(number))
-    //    {
-    //        number = number[..^1];
-    //    }
 
-    //    // if theres no digit left
-    //    if (string.IsNullOrEmpty(number))
-    //    {
-    //        Buffer = 0;
-    //        Exponent = 0;
-    //        isTyping = false;
-    //        return;
-    //    }
-
-    //    // else theres still digit left
-    //    if (Exponent < 0) Exponent++;
-    //    if (Exponent == -1)
-    //    {
-    //        number = number[..^1];
-    //    }
-
-    //    Buffer = decimal.Parse(number);
-    //}
     private void EnterComma()
     {
         Debug.Assert(CurrentState != State.Float, "Comma cant be added to a float");
+        Debug.Assert(CurrentState != State.Operator, "Comma cant be entered after an operator");
+        Debug.Assert(CurrentState != State.Equal, "Comma cant be entered after Equal button");
+
         Exponent--;
         CurrentState = State.Float;
     }
+
     private void EnterDigit(decimal digit)
     {
+        if (CurrentState == State.Equal)    EnterClearAll();
+
         Buffer = Exponent switch
         {
             0 => Buffer * 10 + digit,
             _ => Buffer + digit * (decimal)Math.Pow(10, Exponent--)
         };
 
-        if (CurrentState != State.Float)
-        {
-            CurrentState = State.Number;
-        }
-        else
+        if (CurrentState == State.Float)
         {
             CurrentState = State.Float;
         }
+        else
+        {
+            CurrentState = State.Number;
+        }
     }
 
+    private void EnterBackSpace()
+    {
+        Debug.Assert(CurrentState != State.Start, "Backspace cant be entered at the start");
+        Debug.Assert(CurrentState != State.Operator, "Backspace cant be entered after an operator");
+        Debug.Assert(CurrentState != State.Equal, "Backspace cant be entered after Equal button");
+        Debug.Assert(Buffer != 0, "Backspace cant be entered when theres no digit");
+
+        string currentDisplay = Display;
+
+        // If there is only 1 character left, reset
+        if (currentDisplay.Length <= 1)
+        {
+            Buffer = 0;
+            Exponent = 0;
+            CurrentState = State.Number;
+            return;
+        }
+
+        // Scenario A: We are removing the comma itself
+        if (currentDisplay[^1] == ',')
+        {
+            Exponent = 0;
+            CurrentState = State.Number;
+            return;
+        }
+        // Scenario B: We are removing a digit
+        else
+        {
+            if (Exponent < 0) Exponent++;
+
+            string newDisplay = currentDisplay[..^1];
+
+            // If removing the digit exposes the comma at the very end (e.g., "1,2" -> "1,")
+            if (newDisplay[^1] == ',')
+            {
+                // Parse only the integer part
+                Buffer = decimal.Parse(newDisplay[..^1]);
+                CurrentState = State.Float;
+            }
+            else
+            {
+                // Parse safely
+                Buffer = decimal.Parse(newDisplay);
+                CurrentState = Exponent < 0 ? State.Float : State.Number;
+            }
+        }
+    }
+
+
+    // ######################################################
+    // Helper Methods
     private decimal CalculateResult()
         /* Update the Result by doing the calculation with the buffer using the current operator */
     {
