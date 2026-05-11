@@ -96,7 +96,6 @@ public partial class Calculator
         Debug.Assert(CurrentState != State.Start, "Backspace cant be entered at the start");
         Debug.Assert(CurrentState != State.Operator, "Backspace cant be entered after an operator");
         Debug.Assert(CurrentState != State.Equal, "Backspace cant be entered after Equal button");
-        Debug.Assert(Buffer != 0, "Backspace cant be entered when theres no digit");
 
         string currentDisplay = Display;
 
@@ -105,37 +104,36 @@ public partial class Calculator
         {
             Buffer = 0;
             Exponent = 0;
-            CurrentState = State.Number;
+            bool isStartState = result == 0 && CurrentOperator == Operator.Plus;
+            CurrentState = isStartState ? State.Start : State.Number;
             return;
         }
 
-        // Scenario A: We are removing the comma itself
-        if (currentDisplay[^1] == ',')
+        string newDisplay = currentDisplay[..^1];
+        switch (CurrentState)
         {
-            Exponent = 0;
-            CurrentState = State.Number;
-            return;
-        }
-        // Scenario B: We are removing a digit
-        else
-        {
-            if (Exponent < 0) Exponent++;
-
-            string newDisplay = currentDisplay[..^1];
-
-            // If removing the digit exposes the comma at the very end (e.g., "1,2" -> "1,")
-            if (newDisplay[^1] == ',')
-            {
-                // Parse only the integer part
-                Buffer = decimal.Parse(newDisplay[..^1]);
-                CurrentState = State.Float;
-            }
-            else
-            {
-                // Parse safely
+            case State.Number:
                 Buffer = decimal.Parse(newDisplay);
-                CurrentState = Exponent < 0 ? State.Float : State.Number;
-            }
+                Exponent = 0;
+                CurrentState = State.Number;
+                break;
+            case State.Float:
+                // If removing the digit exposes the comma at the very end (e.g., "1,2" -> "1,")
+                if (newDisplay[^1] == ',')
+                {
+                    Buffer = decimal.Parse(newDisplay[..^1]);
+                    Exponent = -1;
+                    CurrentState = State.Float;
+                }
+                else // If removing the digit expose a digit at the very end (e.g., "1,23" -> "1,2")
+                {
+                    Buffer = decimal.Parse(newDisplay);
+                    Exponent++;
+                    CurrentState = Exponent < 0 ? State.Float : State.Number;
+                }
+                break;
+            default:
+                throw new InvalidOperationException("Backspace can only be entered in Number or Float state");
         }
     }
 
