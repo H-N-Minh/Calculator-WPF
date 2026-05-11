@@ -10,48 +10,30 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Calc2;
 
-public enum State
-{
-    Start, Equal, Number, Float, Operator
-}
-
 public partial class Calculator : INotifyPropertyChanged
 {
     // Fields
     private decimal result = 0;
 
-    private CalculatorState calculatorState;
-    private OperatorState operatorState = new OperatorState();
-    private EqualState equalState = new EqualState();
-    private FloatState floatState = new FloatState();
-    private StartState startState = new StartState();
-    private CalculatorState numberState = new CalculatorState();
-    public CalculatorState CalculatorState
-    {
-        get { return calculatorState; }
-        set
-        {
-            calculatorState = value;
-            OnPropertyChanged(nameof(CalculatorState));
-            Handler.RaiseCanExecuteChanged();
-            OnPropertyChanged(nameof(Display));
-        }
-    }
-
+    private OperatorStrategy operatorState;
+    private EqualStrategy equalState;
+    private FloatStrategy floatState;
+    private StartStrategy startState;
+    private CalculatorStrategy numberState; 
 
     // Properties
-    private State currentState = State.Start;
-    public State CurrentState
+    private ICalculatorStrategy currentState;
+    public ICalculatorStrategy CurrentState
     {
         get { return currentState; }
-        set { 
+        set
+        {
             currentState = value;
             OnPropertyChanged(nameof(CurrentState));
             Handler.RaiseCanExecuteChanged();
             OnPropertyChanged(nameof(Display));
         }
     }
-
 
     private Operator currentOperator = Operator.Plus;
     public Operator CurrentOperator
@@ -92,7 +74,7 @@ public partial class Calculator : INotifyPropertyChanged
     {
         get
         {
-            if (CurrentState == State.Equal)
+            if (CurrentState == equalState)
             {
                 return result.ToString();
             }
@@ -115,8 +97,13 @@ public partial class Calculator : INotifyPropertyChanged
     public Calculator()
     {
         Handler = new CommandHandler(this);
-        CalculatorState = startState;
+        numberState = new CalculatorStrategy(this);
+        startState = new StartStrategy(numberState);
+        operatorState = new OperatorStrategy(numberState);
+        equalState = new EqualStrategy(numberState);
+        floatState = new FloatStrategy(numberState);
 
+        CurrentState = startState;
     }
 
     // Method
@@ -145,7 +132,7 @@ public partial class Calculator : INotifyPropertyChanged
         {
             string command = parameter as string ?? throw new ArgumentException("Parameter must be a string", nameof(parameter));
 
-            return calculator.CalculatorState.CanExecute(command, calculator);
+            return calculator.CurrentState.CanExecute(command);
         }
 
 
@@ -192,16 +179,22 @@ public partial class Calculator : INotifyPropertyChanged
 }
 
 
-public class CalculatorState
+public interface ICalculatorStrategy
 {
-    public virtual bool CanExecute(string command, Calculator calculator)
+    bool CanExecute(string command);
+}
+
+public class CalculatorStrategy (Calculator calculator) : ICalculatorStrategy
+{
+    public bool CanExecute(string command)
     {
-        // Check for division by zero
-        if (calculator.CurrentOperator == Operator.Divide && calculator.Buffer == 0)
+        // No backspace if buffer is empty
+        if (command == "BackSpace" && calculator.Display == "0")
         {
             return false;
         }
-        if (command == "BackSpace" && calculator.Buffer == 0)
+
+        if (calculator.CurrentOperator == Operator.Divide && calculator.Buffer == 0 && command == "=")
         {
             return false;
         }
@@ -210,64 +203,79 @@ public class CalculatorState
 
 }
 
-public class  FloatState : CalculatorState
+
+public class  FloatStrategy (ICalculatorStrategy baseState, CanEval canEval)  : ICalculatorStrategy
 {
-    public override bool CanExecute(string command, Calculator calculator)
+    public bool CanExecute(string command)
     {
-        switch (command)
+        return command != "," && baseState.CanExecute(command);
+    }
+
+    public void Execute(string command)
+    {
+        if (command == "=")
         {
-            case ",":
-                return false;
+            canEval.Execute();
         }
-        return base.CanExecute(command, calculator);
+    }
+
+}
+
+public class EqualStrategy(ICalculatorStrategy baseState) : ICalculatorStrategy
+{
+    public bool CanExecute(string command)
+    {
+        bool isValidCommand = command != "BackSpace" && command != ",";
+        return isValidCommand && baseState.CanExecute(command);
+    }
+
+    public void Execute(string command)
+    {
+        if (command == "=")
+        {
+
+        }
     }
 }
 
-public class EqualState : CalculatorState
+
+
+public class StartStrategy(ICalculatorStrategy baseState) : ICalculatorStrategy
 {
-    public override bool CanExecute(string command, Calculator calculator)
+    public bool CanExecute(string command)
     {
-        switch (command)
-        {
-            case "BackSpace":
-            case ",":
-                return false;
-        }
-        return base.CanExecute(command, calculator);
+        return command is not ("*" or "/" or "-" or "+" or "BackSpace" or "=" or "+/-") && baseState.CanExecute(command);
     }
 }
 
-public class StartState : CalculatorState
+public class OperatorStrategy(ICalculatorStrategy baseState) : ICalculatorStrategy
 {
-    public override bool CanExecute(string command, Calculator calculator)
+    public bool CanExecute(string command)
     {
-        switch (command)
-        {
-            case "*":
-            case "/":
-            case "-":
-            case "+":
-            case "BackSpace":
-            case "=":
-            case "+/-":
-                return false;
-        }
-        return base.CanExecute(command, calculator);
+        return command is not ("CE" or "," or "+/-" or "=" or "BackSpace") && baseState.CanExecute(command);
+    }
+
+    public void Execute(string command)
+    {
+
+        //switch (command)
+        //{
+        //    case "*": case "/": case "-": case "+":
+        //        calculator.EnterOperator(command);
+        //        break;
+        //    default:
+        //        throw new ArgumentException("Not implemented command", nameof(command));
+        //}
     }
 }
 
-public class OperatorState : CalculatorState
+
+public class CanEval(Calculator calculator)
 {
-    public override bool CanExecute(string command, Calculator calculator)
+    public void Execute()
     {
-        switch (command)
-        {
-            case "CE":
-            case ",":
-            case "+/-":
-            case "=":
-                return false;
-        }
-        return base.CanExecute(command, calculator);
+        
     }
+
+
 }
