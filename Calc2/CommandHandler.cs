@@ -27,6 +27,7 @@ public partial class Calculator
         Exponent = 0;
         if (isOnlyBufferHasNumber) Buffer = 0;
         CurrentState = State.Equal;
+        CalculatorState = equalState;
     }
 
     private void EnterOperator(string arithOperator)
@@ -50,6 +51,8 @@ public partial class Calculator
             _ => throw new ArgumentException("arithOperator is not an operator", nameof(arithOperator))
         };
         CurrentState = State.Operator;
+
+        CalculatorState = operatorState;
     }
 
     private void EnterClearAll()
@@ -59,6 +62,7 @@ public partial class Calculator
         Exponent = 0;
         CurrentOperator = Operator.Plus;
         CurrentState = State.Start;
+        CalculatorState = startState;
     }
 
     private void EnterComma()
@@ -69,6 +73,7 @@ public partial class Calculator
 
         Exponent--;
         CurrentState = State.Float;
+        CalculatorState = floatState;
     }
 
     private void EnterDigit(decimal digit)
@@ -84,10 +89,13 @@ public partial class Calculator
         if (CurrentState == State.Float)
         {
             CurrentState = State.Float;
+            CalculatorState = floatState;
         }
         else
         {
             CurrentState = State.Number;
+
+            CalculatorState = numberState;
         }
     }
 
@@ -106,6 +114,7 @@ public partial class Calculator
             Exponent = 0;
             bool isStartState = result == 0 && CurrentOperator == Operator.Plus;
             CurrentState = isStartState ? State.Start : State.Number;
+            CalculatorState = isStartState ? startState : numberState;
             return;
         }
 
@@ -116,6 +125,7 @@ public partial class Calculator
                 Buffer = decimal.Parse(newDisplay);
                 Exponent = 0;
                 CurrentState = State.Number;
+                CalculatorState = numberState;
                 break;
             case State.Float:
                 // If removing the digit exposes the comma at the very end (e.g., "1,2" -> "1,")
@@ -124,12 +134,14 @@ public partial class Calculator
                     Buffer = decimal.Parse(newDisplay[..^1]);
                     Exponent = -1;
                     CurrentState = State.Float;
+                    CalculatorState = floatState;
                 }
                 else // If removing the digit expose a digit at the very end (e.g., "1,23" -> "1,2")
                 {
                     Buffer = decimal.Parse(newDisplay);
                     Exponent++;
                     CurrentState = Exponent < 0 ? State.Float : State.Number;
+                    CalculatorState = Exponent < 0 ? floatState : numberState;
                 }
                 break;
             default:
@@ -147,6 +159,7 @@ public partial class Calculator
             Buffer = 0;
             Exponent = 0;
             CurrentState = State.Number;
+            CalculatorState = numberState;
         }
         else
         {
