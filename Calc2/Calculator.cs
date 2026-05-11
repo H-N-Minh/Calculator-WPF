@@ -125,7 +125,10 @@ public partial class Calculator : INotifyPropertyChanged
 
             switch (command)
             {
-                case "C": case "+/-": case "0": case "1": case "2": case "3": case "4": case "5": case "6": case "7": case "8": case "9":
+                case "C": case "0": case "1": case "2": case "3": case "4": case "5": case "6": case "7": case "8": case "9":
+                    break;
+                case "+/-":
+                    if (calculator.CurrentState == State.Operator || calculator.CurrentState == State.Start) return false;
                     break;
                 case "=":
                     if (calculator.CurrentState == State.Operator || calculator.CurrentState == State.Start) return false;
@@ -173,11 +176,12 @@ public partial class Calculator : INotifyPropertyChanged
                 case "BackSpace":
                     calculator.EnterBackSpace();
                     break;
-                //case "+/-": 
-                //    break;
-                // case "CE":
-                //    if (calculator.State == State.Operator) return false;
-                //    break;
+                case "+/-":
+                    calculator.EnterSignFlip();
+                    break;
+                case "CE":
+                    calculator.EnterClearEntry();
+                    break;
                 case "*": case "/": case "-": case "+":
                     calculator.EnterOperator(command);
                     break;

@@ -137,6 +137,38 @@ public partial class Calculator
         }
     }
 
+    private void EnterClearEntry()
+    {
+        Debug.Assert(CurrentState != State.Operator, "Clear Entry cant be entered after an operator");
+
+        bool isTypingNumber = CurrentState == State.Number || CurrentState == State.Float;
+        if (isTypingNumber)
+        {
+            Buffer = 0;
+            Exponent = 0;
+            CurrentState = State.Number;
+        }
+        else
+        {
+            EnterClearAll();
+        }
+    }
+
+    private void EnterSignFlip()
+    {
+        Debug.Assert(CurrentState != State.Start, "Sign flip cant be entered at the start");
+        Debug.Assert(CurrentState != State.Operator, "Sign flip cant be entered after an operator");
+
+        if (CurrentState == State.Equal)
+        {
+            result = -result;
+            OnPropertyChanged(nameof(Display));
+        }
+        else
+        {
+            Buffer = -Buffer;
+        }
+    }
 
     // ######################################################
     // Helper Methods
