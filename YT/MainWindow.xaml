@@ -4,21 +4,44 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:YT"
-        xmlns:InputBox="clr-namespace:YT.InputBox"
         mc:Ignorable="d"
-        d:DataContext="{d:DesignInstance Type=local:DataForMainWindow}"
-        Title="MainWindow" Height="450" Width="800">
+        Title="MainWindow" Height="450" Width="800"
+        d:DataContext="{d:DesignInstance Type=local:MainWindow, IsDesignTimeCreatable=True}">
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition/>
-            <RowDefinition/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition/>
         </Grid.RowDefinitions>
 
-         
-        <InputBox:InputBox x:Name="_inputBox" Background="Orange" DataContext="{Binding DataInputBox}"/>
-        <Button Grid.Row="1" Width="60" Height="30" Content="Set"/>
-        <TextBlock Grid.Row="2" Text="{Binding  }" VerticalAlignment="Center" HorizontalAlignment="Center" FontSize="30"/>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="600"/>
+            <ColumnDefinition/>
+            <ColumnDefinition/>
+            <ColumnDefinition/>
+        </Grid.ColumnDefinitions>
 
+        <TextBox VerticalAlignment="Center" Margin="10,20,10,20" TextChanged="TextBox_TextChanged" Text="{Binding InputTextBox, UpdateSourceTrigger=PropertyChanged}" 
+                 Background="Transparent"/>
+        <TextBlock VerticalAlignment="Center" Margin="15,20,10,20" Text="Insert a book name" Panel.ZIndex="-1" Name="UITextBlock"/>
+        <Button Grid.Column="1" Content="Add" VerticalAlignment="Center" Command="{Binding AddCommand}" CommandParameter="{Binding InputTextBox}"/>
+        <Button Grid.Column="2" Content="Delete" VerticalAlignment="Center"  Command="{Binding DeleteCommand}" CommandParameter="{Binding SelectedItem, ElementName=UIListView}"/>
+        <Button Grid.Column="3" Content="Clear All" VerticalAlignment="Center" Command="{Binding ClearAllCommand}"/>
+
+        <ListView Grid.Row="1" Grid.ColumnSpan="4" ItemsSource="{Binding Books}" Name="UIListView">
+            <ListView.ItemTemplate>
+                <DataTemplate DataType="local:Book">
+                    <Grid >
+                        <TextBlock Text="{Binding Title}" FontSize="24"/>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="0.6*"/>
+                            <ColumnDefinition  Width="0.4*"/>
+                        </Grid.ColumnDefinitions>
+                        
+                    </Grid>
+                </DataTemplate> 
+
+
+            </ListView.ItemTemplate>
+        </ListView>
     </Grid>
 </Window>
