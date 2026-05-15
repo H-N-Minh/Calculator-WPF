@@ -1,7 +1,7 @@
 <Solution>
   <Project Path="Calculator V1/Calculator V1.csproj" />
   <Project Path="Calculator V2/Calculator V2.csproj" />
+  <Project Path="Library/Library.csproj" />
   <Project Path="Panels/Panels.csproj" Id="43c8d9a1-1497-433a-adf3-90a9e1c1682c" />
   <Project Path="SDK/SDK.csproj" />
-  <Project Path="YT/YT.csproj" Id="2a79c94e-c771-4bce-80b4-acb00c9112a2" />
 </Solution>
