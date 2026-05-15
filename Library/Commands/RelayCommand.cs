@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Windows.Input;
 
-namespace YT;
+namespace Library.Commands;
 
 public class RelayCommand(Action<object?> exe, Func<object?, bool> canExe = null) : ICommand
 {
