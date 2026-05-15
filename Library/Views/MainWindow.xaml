@@ -12,17 +12,28 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition/>
         </Grid.RowDefinitions>
+        
+        <!--Search box-->
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+               
+            <!--Text box-->
+            <Grid Grid.Column="0">
+                <TextBlock VerticalAlignment="Center" Margin="15,20,10,20" Text="Insert a book name" Panel.ZIndex="-1" Name="UITextBlock"/>
+                <TextBox VerticalAlignment="Center"  Margin="10,20,10,20" Background="Transparent"/>
 
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="600"/>
-            <ColumnDefinition/>
-            <ColumnDefinition/>
-            <ColumnDefinition/>
-        </Grid.ColumnDefinitions>
-
-        <TextBox VerticalAlignment="Center" Margin="10,20,10,20"  Text="hi" 
-                 Background="Transparent"/>
-        <TextBlock VerticalAlignment="Center" Margin="15,20,10,20" Text="Insert a book name" Panel.ZIndex="-1" Name="UITextBlock"/>
+                <Button Content="X" Width="30" HorizontalAlignment="Right" VerticalAlignment="Center" 
+                        Background="Transparent" Foreground="Gray" BorderThickness="0" Margin="0,0,10,0"/>
+            </Grid>
+            
+            <!--Search button-->
+            <Grid Grid.Column="1" Margin="10">
+                <Button Content="Search" Width="50" HorizontalAlignment="Right" Background="LightBlue"/>
+            </Grid>
+        </Grid>
 
     </Grid>
 </Window>
