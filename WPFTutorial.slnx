@@ -1,6 +1,7 @@
 <Solution>
-  <Project Path="../../../../../../../../SDKDevSign/Training/WPFTutorial/WPFTutorial/Calc2/Calc2.csproj" Id="e7a32f47-038f-4b31-9f63-2122ffeedb37" />
-  <Project Path="../../../../../../../../SDKDevSign/Training/WPFTutorial/WPFTutorial/WpfApp1/SDK.csproj" />
-  <Project Path="../../../../../../../../SDKDevSign/Training/WPFTutorial/WPFTutorial/WPFTutorial/Calculator.csproj" />
-  <Project Path="../../../../../../../../SDKDevSign/Training/WPFTutorial/WPFTutorial/YT/YT.csproj" Id="2a79c94e-c771-4bce-80b4-acb00c9112a2" />
+  <Project Path="Calc2/Calc2.csproj" Id="e7a32f47-038f-4b31-9f63-2122ffeedb37" />
+  <Project Path="Panels/Panels.csproj" Id="43c8d9a1-1497-433a-adf3-90a9e1c1682c" />
+  <Project Path="WpfApp1/SDK.csproj" />
+  <Project Path="WPFTutorial/Calculator.csproj" />
+  <Project Path="YT/YT.csproj" Id="2a79c94e-c771-4bce-80b4-acb00c9112a2" />
 </Solution>
