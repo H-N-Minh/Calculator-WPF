@@ -58,6 +58,18 @@ public class Book : INotifyPropertyChanged
 		set { description = value; OnPropertyChanged(); }
 	}
 
+	public Book(string title, string? author = null, DateTime? publishDate = null, int? pages = null, 
+				decimal? price = null, float? rating = null, string? description = null)
+	{
+		Title = title;
+		Author = author;
+		PublishDate = publishDate;
+		Pages = pages;
+		Price = price;
+		Rating = rating;
+		Description = description;
+	}
+
     public event PropertyChangedEventHandler? PropertyChanged;
 	public void OnPropertyChanged([CallerMemberName] string propertyName = null)
 	{
