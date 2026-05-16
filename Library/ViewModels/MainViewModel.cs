@@ -24,9 +24,9 @@ public class MainViewModel : INotifyPropertyChanged
         set { 
             searchQuery = value;
             OnPropertyChanged();
-            OnPropertyChanged(nameof(IsPlaceHolderVisible));
-            VisibleBooks.Refresh();
-            ClearSearchQueryCMD.RaiseCanExecuteChanged();
+            OnPropertyChanged(nameof(IsPlaceHolderVisible));        // Notify the placeholder to change visibility
+            VisibleBooks.Refresh();                                 // Notify the listview to re-apply the filter
+            ClearSearchQueryCMD.RaiseCanExecuteChanged();           // Notify the clear-search-query button to update its enabled state
         }
     }
 
@@ -56,7 +56,8 @@ public class MainViewModel : INotifyPropertyChanged
 
         // Bind the commands
         ClearSearchQueryCMD = new RelayCommand((_) => SearchQuery = string.Empty, (_) => !string.IsNullOrEmpty(SearchQuery));
-        RemoveBookCMD = new RelayCommand(RemoveSelectedBook);
+        RemoveBookCMD = new RelayCommand(RemoveSelectedBook, _ => SelectedBooks.Count > 0);
+        SelectedBooks.CollectionChanged += (s, e) => RemoveBookCMD.RaiseCanExecuteChanged();
     }
 
     // Events
