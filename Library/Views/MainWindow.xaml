@@ -5,8 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:YT"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800"
-        d:DataContext="{d:DesignInstance Type=local:MainWindow, IsDesignTimeCreatable=True}">
+        Title="MainWindow" Height="450" Width="800">
+    <!--Main Grid-->
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -22,17 +22,48 @@
                
             <!--Text box-->
             <Grid Grid.Column="0">
-                <TextBlock VerticalAlignment="Center" Margin="15,20,10,20" Text="Insert a book name" Panel.ZIndex="-1" Name="UITextBlock"/>
-                <TextBox VerticalAlignment="Center"  Margin="10,20,10,20" Background="Transparent"/>
+                <TextBox Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}" Name="SearchBox"  VerticalAlignment="Center" 
+                         Margin="10,20,10,20" Background="Transparent" />
+                <TextBlock Name="UITextBlock" Visibility="{Binding IsPlaceHolderVisible}"
+                            VerticalAlignment="Center" Margin="15,20,10,20" Text="Search by titles and/or authors..." 
+                            IsHitTestVisible="False" Foreground="Gray"/>
 
-                <Button Content="X" Width="30" HorizontalAlignment="Right" VerticalAlignment="Center" 
-                        Background="Transparent" Foreground="Gray" BorderThickness="0" Margin="0,0,10,0"/>
+                <Button Command="{Binding ClearSearchQueryCMD}" Click="Clear_Button_Click"
+                        Content="X" Width="30" HorizontalAlignment="Right" VerticalAlignment="Center" 
+                        Background="Transparent" Foreground="Gray" BorderThickness="0" Margin="0,5,10,5" />
             </Grid>
             
             <!--Search button-->
             <Grid Grid.Column="1" Margin="10">
                 <Button Content="Search" Width="50" HorizontalAlignment="Right" Background="LightBlue"/>
             </Grid>
+        </Grid>
+        
+        <!--Main View of all books and buttons to modify them -->
+        <Grid Grid.Row="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            
+            <!--Control panel, includes info about the number of books and buttons-->
+            <DockPanel Grid.Row="0" Margin="10" LastChildFill="False" VerticalAlignment="Center">
+                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Margin="5">
+                    <TextBlock Text="Total Books: " FontWeight="Bold"/>
+                    <TextBlock Text="{Binding NumVisibleBooks}" FontWeight="Bold"/>
+                </StackPanel>
+
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <Button Content="Remove Book" Command="{Binding RemoveBookCMD}" Margin="5" Background="LightYellow"/>
+                    <Button Content="Add Book" Command="" Margin="5" Background="AliceBlue"/>
+                </StackPanel>
+            </DockPanel>
+
+            <!--The list of the books-->
+            <ListView Grid.Row="1" ItemsSource="{Binding VisibleBooks}" SelectionMode="Extended" DisplayMemberPath="DisplayInfo" 
+                      HorizontalAlignment="Stretch" Margin="10" SelectionChanged="BookList_SelectionChanged">
+
+            </ListView>
         </Grid>
 
     </Grid>

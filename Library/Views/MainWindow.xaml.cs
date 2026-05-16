@@ -24,9 +24,29 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        DataContext = new MainViewModel(this);
+        DataContext = new MainViewModel();
     }
 
+    private void Clear_Button_Click(object sender, RoutedEventArgs e)
+    {
+        SearchBox.Focus();
+    }
+
+    private void BookList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (DataContext is MainViewModel viewModel)
+        {
+            viewModel.SelectedBooks.Clear();
+
+            foreach (var item in ((ListView)sender).SelectedItems)
+            {
+                if (item is Book book)
+                {
+                    viewModel.SelectedBooks.Add(book);
+                }
+            }
+        }
+    }
 }
 
 

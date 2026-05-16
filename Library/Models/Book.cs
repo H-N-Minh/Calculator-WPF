@@ -76,4 +76,6 @@ public class Book : INotifyPropertyChanged
 		PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 
+	public string DisplayInfo => $"{Title} - {(string.IsNullOrWhiteSpace(Author) ? "(unknown)" : Author)}";
+
 }
