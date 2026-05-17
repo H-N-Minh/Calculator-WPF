@@ -26,7 +26,8 @@ public class MainViewModel : INotifyPropertyChanged
             OnPropertyChanged();
             OnPropertyChanged(nameof(IsPlaceHolderVisible));        // Notify the placeholder to change visibility
             VisibleBooks.Refresh();                                 // Notify the listview to re-apply the filter
-            ClearSearchQueryCMD.RaiseCanExecuteChanged();           // Notify the clear-search-query button to update its enabled state
+            OnPropertyChanged(nameof(VisibleBooksCount));           // Notify the new listview count to update
+            ClearSearchQueryCMD.RaiseCanExecuteChanged();           // Notify the X button to update its enabled state
         }
     }
 
@@ -35,10 +36,7 @@ public class MainViewModel : INotifyPropertyChanged
 
     public ICollectionView VisibleBooks { get; }
 
-    public int NumVisibleBooks { get { return allBooks.Count; }}
-
-    // Properties
-    public ObservableCollection<Book> SelectedBooks { get; } = new();
+    public int VisibleBooksCount { get { return VisibleBooks.Cast<Book>().Count(); }}
 
     // Commands
     public RelayCommand ClearSearchQueryCMD { get; }
@@ -51,18 +49,17 @@ public class MainViewModel : INotifyPropertyChanged
         VisibleBooks = CollectionViewSource.GetDefaultView(allBooks);
         VisibleBooks.Filter = FilterBooks;
 
-        // Load initial data
-        LoadBooks();
-
         // Bind the commands
         ClearSearchQueryCMD = new RelayCommand((_) => SearchQuery = string.Empty, (_) => !string.IsNullOrEmpty(SearchQuery));
-        RemoveBookCMD = new RelayCommand(RemoveSelectedBook, _ => SelectedBooks.Count > 0);
-        SelectedBooks.CollectionChanged += (s, e) => RemoveBookCMD.RaiseCanExecuteChanged();
+        RemoveBookCMD = new RelayCommand(RemoveSelectedBook);
+
+        // Load initial data
+        LoadBooks();
     }
 
     // Events
     public event PropertyChangedEventHandler? PropertyChanged;
-    private void OnPropertyChanged([CallerMemberName] string propertyName = null)
+    private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
@@ -70,11 +67,14 @@ public class MainViewModel : INotifyPropertyChanged
     // Methods
     private void RemoveSelectedBook(object? parameter)
     {
-        List<Book> removeBooks = SelectedBooks.ToList();
-        foreach (var book in removeBooks)
+        if (parameter is System.Collections.IList selectedBooks && selectedBooks.Count > 0)
         {
-            allBooks.Remove(book);
-            OnPropertyChanged(nameof(NumVisibleBooks));
+            var booksToRemove = selectedBooks.Cast<Book>().ToList();
+            foreach (var book in booksToRemove)
+            {
+                allBooks.Remove(book);
+            }
+            OnPropertyChanged(nameof(VisibleBooksCount));
         }
     }
 
@@ -118,8 +118,8 @@ public class MainViewModel : INotifyPropertyChanged
         foreach (var book in books)
         {
             allBooks.Add(book);
-            OnPropertyChanged(nameof(NumVisibleBooks));
         }
+        OnPropertyChanged(nameof(VisibleBooksCount));
     }
 
     private bool FilterBooks(object obj)

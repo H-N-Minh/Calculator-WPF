@@ -31,22 +31,6 @@ public partial class MainWindow : Window
     {
         SearchBox.Focus();
     }
-
-    private void BookList_SelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (DataContext is MainViewModel viewModel)
-        {
-            viewModel.SelectedBooks.Clear();
-
-            foreach (var item in ((ListView)sender).SelectedItems)
-            {
-                if (item is Book book)
-                {
-                    viewModel.SelectedBooks.Add(book);
-                }
-            }
-        }
-    }
 }
 
 

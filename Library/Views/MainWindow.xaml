@@ -3,9 +3,10 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:YT"
+        xmlns:local="clr-namespace:Library.ViewModels"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="MainWindow" Height="450" Width="800"
+        d:DataContext="{d:DesignInstance Type=local:MainViewModel, IsDesignTimeCreatable=True}">
     <!--Main Grid-->
     <Grid>
         <Grid.RowDefinitions>
@@ -50,18 +51,19 @@
             <DockPanel Grid.Row="0" Margin="10" LastChildFill="False" VerticalAlignment="Center">
                 <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Margin="5">
                     <TextBlock Text="Total Books: " FontWeight="Bold"/>
-                    <TextBlock Text="{Binding NumVisibleBooks}" FontWeight="Bold"/>
+                    <TextBlock Text="{Binding VisibleBooksCount}" FontWeight="Bold"/>
                 </StackPanel>
 
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                    <Button Content="Remove Book" Command="{Binding RemoveBookCMD}" Margin="5" Background="LightYellow"/>
+                    <Button Content="Remove Book" Command="{Binding RemoveBookCMD}" CommandParameter="{Binding ElementName=VisibleBookListView, Path=SelectedItems}"
+                            Margin="5" Background="LightYellow"/>
                     <Button Content="Add Book" Command="" Margin="5" Background="AliceBlue"/>
                 </StackPanel>
             </DockPanel>
 
             <!--The list of the books-->
-            <ListView Grid.Row="1" ItemsSource="{Binding VisibleBooks}" SelectionMode="Extended" DisplayMemberPath="DisplayInfo" 
-                      HorizontalAlignment="Stretch" Margin="10" SelectionChanged="BookList_SelectionChanged">
+            <ListView Name="VisibleBookListView" Grid.Row="1" ItemsSource="{Binding VisibleBooks}" SelectionMode="Extended" DisplayMemberPath="DisplayInfo" 
+                      HorizontalAlignment="Stretch" Margin="10">
 
             </ListView>
         </Grid>
