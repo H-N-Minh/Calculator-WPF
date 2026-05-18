@@ -14,18 +14,13 @@ using System.Windows.Shapes;
 namespace Library.Views
 {
     /// <summary>
-    /// Interaction logic for BookListView.xaml
+    /// Interaction logic for BookDetail.xaml
     /// </summary>
-    public partial class BookListViews : UserControl
+    public partial class BookDetailsView : UserControl
     {
-        public BookListViews()
+        public BookDetailsView()
         {
             InitializeComponent();
-        }
-
-        private void Clear_Button_Click(object sender, RoutedEventArgs e)
-        {
-            SearchBox.Focus();
         }
     }
 }

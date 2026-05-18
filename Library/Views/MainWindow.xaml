@@ -10,11 +10,15 @@
         d:DataContext="{d:DesignInstance Type=vm:MainViewModel, IsDesignTimeCreatable=True}">
 
     <Window.Resources>
-        <DataTemplate DataType="{x:Type vm:BooksListVM}">
-            <view:BookListViews></view:BookListViews>
+        <DataTemplate DataType="{x:Type vm:HomeVM}">
+            <view:HomeView></view:HomeView>
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type vm:BookDetailsVM}">
+            <view:BookDetailsView/>
         </DataTemplate>
     </Window.Resources>
     
-    <ContentPresenter Content="{Binding Screen}"/>
+    <ContentControl Content="{Binding Screen}"/>
     
 </Window>

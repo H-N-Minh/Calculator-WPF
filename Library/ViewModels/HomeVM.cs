@@ -10,7 +10,7 @@ using System.Windows.Data;
 
 namespace Library.ViewModels;
 
-class BooksListVM : ViewModelBase
+public class HomeVM : ViewModelBase
 {
 
     private readonly ObservableCollection<Book> allBooks = new();
@@ -42,9 +42,10 @@ class BooksListVM : ViewModelBase
     // Commands
     public RelayCommand ClearSearchQueryCMD { get; }
     public RelayCommand RemoveBookCMD { get; }
+    public RelayCommand SwitchScreenCMD {  get; }
 
     // Ctor
-    public BooksListVM(Action<ViewModelBase> switchScreenTo)
+    public HomeVM(Action<ViewModelBase> switchScreenTo)
     {
         this.switchScreenTo = switchScreenTo;
         // Set the view and filter
@@ -54,13 +55,24 @@ class BooksListVM : ViewModelBase
         // Bind the commands
         ClearSearchQueryCMD = new RelayCommand((_) => SearchQuery = string.Empty, (_) => !string.IsNullOrEmpty(SearchQuery));
         RemoveBookCMD = new RelayCommand(RemoveSelectedBook);
+        SwitchScreenCMD = new RelayCommand(SwitchToDetailsScreen);
 
         // Load initial data
         LoadBooks();
     }
 
+    public HomeVM() : this(_ => { }) { }
+
 
     // Methods
+    private void SwitchToDetailsScreen(object? parameter)
+    {
+        if (parameter is Book book)
+        {
+            switchScreenTo(new BookDetailsVM(book, this, switchScreenTo));
+        }
+    }
+
     private void RemoveSelectedBook(object? parameter)
     {
         if (parameter is System.Collections.IList selectedBooks && selectedBooks.Count > 0)
@@ -103,7 +115,7 @@ class BooksListVM : ViewModelBase
             new("Wuthering Heights", "Emily Brontë"),
             new("Dracula"),
             new("The Picture of Dorian Gray", "Oscar Wilde"),
-            new("Dune", "Frank Herbert", new DateTime(1965, 8, 1), 604, 14.99m, 4.7f, "A masterpiece of science fiction set on the desert planet Arrakis."),
+            new("Dune", "Frank Herbert", new DateTime(1965, 8, 1), 604, 14.99m, 4.7f, "A masterpiece of science fiction set on the desert planet Arrakis.A masterpiece of science fiction set on the desert planet Arrakis.A masterpiece of science fiction set on the desert planet Arrakis.A masterpiece of science fiction set on the desert planet Arrakis.A masterpiece of science fiction set on the desert planet Arrakis.A masterpiece of science fiction set on the desert planet Arrakis.A masterpiece of science fiction set on the desert planet Arrakis.A masterpiece of science fiction set on the desert planet Arrakis.A masterpiece of science fiction set on the desert planet Arrakis.A masterpiece of science fiction set on the desert planet Arrakis."),
             new("Frankenstein", "Mary Shelley", new DateTime(1818, 1, 1), 280, 5.99m, 4.3f, "A gothic novel exploring the consequences of playing God."),
             new("Fahrenheit 451", "Ray Bradbury", new DateTime(1953, 10, 19), 158, 8.99m, 4.6f, "A dystopian novel depicting a future society where books are banned and burned."),
             new("The Picture of Dorian Gray", "Oscar Wilde", new DateTime(1890, 7, 1), 250, 6.99m, 4.4f, "A philosophical novel about youth, vanity, and moral corruption."),

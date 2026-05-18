@@ -33,7 +33,7 @@ public class MainViewModel : ViewModelBase
 
     public MainViewModel()
     {
-        Screen = new BooksListVM(SwitchScreenTo);
+        Screen = new HomeVM(SwitchScreenTo);
     }
 
     private void SwitchScreenTo(ViewModelBase screen)
