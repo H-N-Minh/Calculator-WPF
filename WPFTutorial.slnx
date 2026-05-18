@@ -3,5 +3,6 @@
   <Project Path="Calculator V2/Calculator V2.csproj" />
   <Project Path="Library/Library.csproj" />
   <Project Path="Panels/Panels.csproj" Id="43c8d9a1-1497-433a-adf3-90a9e1c1682c" />
+  <Project Path="ScreenApp/ScreenApp.csproj" Id="2407c42e-c19c-4c66-a620-45151b119646" />
   <Project Path="SDK/SDK.csproj" />
 </Solution>
