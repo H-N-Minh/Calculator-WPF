@@ -27,5 +27,12 @@ namespace Library.Views
         {
             SearchBox.Focus();
         }
+
+        private void Add_Book_Click(object sender, RoutedEventArgs e)
+        {
+            Window addBookWindow = new AddBookWindow();
+            addBookWindow.Owner = Window.GetWindow(this);
+            addBookWindow.ShowDialog();
+        }
     }
 }

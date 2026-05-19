@@ -59,7 +59,7 @@
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                     <Button Content="Remove Book" Command="{Binding RemoveBookCMD}" CommandParameter="{Binding ElementName=VisibleBookListView, Path=SelectedItems}"
                             Margin="5" Background="LightYellow"/>
-                    <Button Content="Add Book" Command="" Margin="5" Background="AliceBlue"/>
+                    <Button Content="Add Book" Click="Add_Book_Click" Margin="5" Background="AliceBlue"/>
                 </StackPanel>
             </DockPanel>
 
