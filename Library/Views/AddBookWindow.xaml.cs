@@ -17,9 +17,12 @@ namespace Library.Views
     /// </summary>
     public partial class AddBookWindow : Window
     {
+        private ViewModels.ViewModelBase viewModel;
         public AddBookWindow()
         {
             InitializeComponent();
+            viewModel = new ViewModels.AddBookVM();
+            DataContext = viewModel;
         }
     }
 }
