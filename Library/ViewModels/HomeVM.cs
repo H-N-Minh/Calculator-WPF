@@ -141,4 +141,14 @@ public class HomeVM : ViewModelBase
 
         return book.DisplayInfo.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase);
     }
+
+    public void AddBook(ViewModelBase viewModel)
+    {
+        if (viewModel == null) return;
+        if (viewModel is AddBookVM addBookVM && addBookVM.NewBook != null)
+        {
+            allBooks.Add(addBookVM.NewBook);
+            OnPropertyChanged(nameof(VisibleBooksCount));
+        }
+    }
 }

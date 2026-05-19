@@ -17,12 +17,18 @@ namespace Library.Views
     /// </summary>
     public partial class AddBookWindow : Window
     {
-        private ViewModels.ViewModelBase viewModel;
+        public ViewModels.AddBookVM ViewModel { get; set; }
         public AddBookWindow()
         {
             InitializeComponent();
-            viewModel = new ViewModels.AddBookVM();
-            DataContext = viewModel;
+            ViewModel = new ViewModels.AddBookVM(CloseWindow);
+            DataContext = ViewModel;
+        }
+
+        private void CloseWindow(bool result)
+        {
+            this.DialogResult = result;
+            this.Close();
         }
     }
 }

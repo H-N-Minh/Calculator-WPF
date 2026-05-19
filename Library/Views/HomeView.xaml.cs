@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Library.Models;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Windows;
@@ -30,9 +31,14 @@ namespace Library.Views
 
         private void Add_Book_Click(object sender, RoutedEventArgs e)
         {
-            Window addBookWindow = new AddBookWindow();
+            AddBookWindow addBookWindow = new AddBookWindow();
             addBookWindow.Owner = Window.GetWindow(this);
-            addBookWindow.ShowDialog();
+            bool? result = addBookWindow.ShowDialog();
+
+            if (result == true && DataContext is ViewModels.HomeVM homeVM)
+            {
+                homeVM.AddBook(addBookWindow.ViewModel);
+            }
         }
     }
 }

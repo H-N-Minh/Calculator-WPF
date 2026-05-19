@@ -1,4 +1,5 @@
 ﻿using Library.Commands;
+using Library.Models;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -7,6 +8,7 @@ namespace Library.ViewModels;
 
 public class AddBookVM : ViewModelBase
 {
+    public Book? NewBook {  get; set; }
     private string? title;
 
     public string? Title
@@ -23,18 +25,24 @@ public class AddBookVM : ViewModelBase
     public string? Description { get; set; }
 
     // Commands
-    public RelayCommand SaveBookCMD { get; set; }
-    public RelayCommand CancelCMD { get; set; }
+    public RelayCommand SaveBookCMD { get;  }
+    public RelayCommand CancelCMD { get;  }
+
+    // Delegate
+    private Action<bool> CloseWindow;
 
     // Ctor
-    public AddBookVM()
+    public AddBookVM(Action<bool> CloseWindow)
     {
         SaveBookCMD = new RelayCommand(SaveBook, _ => !string.IsNullOrEmpty(Title));
-
+        CancelCMD = new RelayCommand(_ => CloseWindow(false));
+        this.CloseWindow = CloseWindow;
     }
 
     public void SaveBook(object? parameter)
     {
-
+        string title = string.IsNullOrEmpty(Title) ? "" : Title;
+        NewBook = new Book(title, Author, PublishDate, Pages, Price, Rating, Description);
+        CloseWindow(true);
     }
 }
