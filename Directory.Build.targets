@@ -1,0 +1,8 @@
+<Project>
+	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
+		<Exec Command="signtool sign /n &quot;SDK Developer&quot; /a /fd sha256 &quot;$(TargetPath)&quot;" />
+
+		<Exec Command="signtool sign /n &quot;SDK Developer&quot; /a /fd sha256 &quot;$(TargetDir)$(AssemblyName).exe&quot;"
+			  Condition="exists('$(TargetDir)$(AssemblyName).exe')" />
+	</Target>
+</Project>
