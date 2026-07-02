@@ -10,7 +10,6 @@
     <StatusBar DataContext="{Binding ElementName=RootCtrl}"
                Height="20"
                Padding="5,0"
-               Background="LightCyan"
                >
         <StatusBar.Resources>
             <!-- Override default StatusBarItem style to clear vertical padding -->
@@ -20,6 +19,18 @@
                 <Setter Property="VerticalContentAlignment" Value="Center"/>
             </Style>
         </StatusBar.Resources>
+
+        <StatusBar.Style>
+            <Style TargetType="StatusBar">
+                <Setter Property="Background" Value="LightGreen"/>
+                
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsLoading}" Value="True">
+                        <Setter Property="Background" Value="Orange"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+        </StatusBar.Style>
         
         <StatusBarItem HorizontalAlignment="Left">
             <TextBlock  FontWeight="Bold">
@@ -31,7 +42,7 @@
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding IsLoading}" Value="True">
                                 <Setter Property="Text" Value="Loading..."/>
-                                <Setter Property="Foreground" Value="Orange"/>
+                                <Setter Property="Foreground" Value="White"/>
                             </DataTrigger>
                         </Style.Triggers>
                     </Style>

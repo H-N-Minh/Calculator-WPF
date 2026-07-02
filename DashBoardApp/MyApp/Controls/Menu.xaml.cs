@@ -18,6 +18,19 @@ namespace DashBoardApp.Controls
     /// </summary>
     public partial class Menu : UserControl
     {
+        public static readonly DependencyProperty ExitAppProperty =
+            DependencyProperty.Register(
+                nameof(ExitApp),
+                typeof(ICommand),
+                typeof(Menu),
+                new PropertyMetadata(null));
+
+        public ICommand ExitApp
+        {
+            get => (ICommand)GetValue(ExitAppProperty);
+            set => SetValue(ExitAppProperty, value);
+        }
+
         public Menu()
         {
             InitializeComponent();

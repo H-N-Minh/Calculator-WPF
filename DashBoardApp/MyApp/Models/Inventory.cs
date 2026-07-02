@@ -1,14 +1,22 @@
-﻿using System;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
 namespace DashBoardApp.Models;
 
-public class HardwareAsset
+public partial class HardwareAsset : ObservableObject
 {
-    public string AssetId { get; set; } = string.Empty;
-    public string Type { get; set; } = string.Empty;
-    public string Manufacturer { get; set; } = string.Empty;
-    public Employee AssignedTo { get; set; }
+    [ObservableProperty]
+    private string assetId = string.Empty;
+
+    [ObservableProperty]
+    private string type = string.Empty;
+
+    [ObservableProperty]
+    private string manufacturer = string.Empty;
+
+    [ObservableProperty]
+    private Employee assignedTo;
 }
 

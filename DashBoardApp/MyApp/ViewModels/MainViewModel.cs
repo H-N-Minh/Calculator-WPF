@@ -1,4 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using DashBoardApp.Models;
 using System;
 using System.Collections.Generic;
@@ -12,6 +13,27 @@ public partial class MainViewModel : ObservableObject
 {
     public ObservableCollection<Employee> AllEmployees { get; set; } = new();
     public ObservableCollection<HardwareAsset> Hardwares { get; set; } = new();
+
+    [ObservableProperty]
+    private bool isLoading = false;
+
+    [RelayCommand]
+    private void ExitApp()
+    {
+        System.Windows.Application.Current.Shutdown();
+    }
+
+    [RelayCommand]
+    private async Task RefreshAsync()
+    {
+        IsLoading = true;
+
+        await Task.Delay(2000);
+
+        LoadDummyData();
+
+        IsLoading = false;
+    }
 
     public MainViewModel()
     {

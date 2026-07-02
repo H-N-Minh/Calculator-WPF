@@ -11,14 +11,16 @@
         >
 
     <DockPanel>
-        <controls:Menu DockPanel.Dock="Top"/>
+        <controls:Menu DockPanel.Dock="Top"
+                       ExitApp="{Binding ExitAppCommand}"/>
         <ToolBar DockPanel.Dock="Top">
             <Button Content="Refresh"
-                    Background="LightBlue"/>
+                    Background="LightBlue"
+                    Command="{Binding RefreshCommand}"/>
         </ToolBar>
         
         <controls:MyStatusBar DockPanel.Dock="Bottom" 
-                              IsLoading="True"/>
+                              IsLoading="{Binding IsLoading}"/>
 
         <TabControl TabStripPlacement="Bottom">
             <TabItem Header="Employee"/>
