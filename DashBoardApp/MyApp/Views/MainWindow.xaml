@@ -13,6 +13,7 @@
     <DockPanel>
         <controls:Menu DockPanel.Dock="Top"
                        ExitApp="{Binding ExitAppCommand}"/>
+        
         <ToolBar DockPanel.Dock="Top">
             <Button Content="Refresh"
                     Background="LightBlue"
@@ -23,7 +24,10 @@
                               IsLoading="{Binding IsLoading}"/>
 
         <TabControl TabStripPlacement="Bottom">
-            <TabItem Header="Employee"/>
+            <TabItem Header="Employee">
+                <userControls:EmployeeTab Departments="{Binding AllDepartments}"
+                                          SelectedItem="{Binding SelectedDepartment}"/>
+            </TabItem>
             
             <TabItem Header="Inventory">
                 <userControls:InventoryTab ItemsSource="{Binding Hardwares}" 

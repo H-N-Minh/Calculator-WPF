@@ -1,5 +1,7 @@
-﻿using System;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
+using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Text;
 
 namespace DashBoardApp.Models;
@@ -18,8 +20,10 @@ public class Role
     string Name { get; set; }
 }
 
-public class DepartmentNode
+public partial class DepartmentNode : ObservableObject
 {
-    string Name { get; set; }
-    List<DepartmentNode> Children { get; set; }
+    [ObservableProperty]
+    private string name;
+
+    public ObservableCollection<DepartmentNode> Children { get; set; } = new();
 }

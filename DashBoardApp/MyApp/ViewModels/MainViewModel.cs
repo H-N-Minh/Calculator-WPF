@@ -4,7 +4,9 @@ using DashBoardApp.Models;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Text;
+using System.Windows.Data;
 using System.Xml.Linq;
 
 namespace DashBoardApp.ViewModels;
@@ -12,7 +14,12 @@ namespace DashBoardApp.ViewModels;
 public partial class MainViewModel : ObservableObject
 {
     public ObservableCollection<Employee> AllEmployees { get; set; } = new();
+    public ICollectionView VisibleEmployees { get; set; }
     public ObservableCollection<HardwareAsset> Hardwares { get; set; } = new();
+    public ObservableCollection<DepartmentNode> AllDepartments { get; set; } = new();
+
+    [ObservableProperty]
+    private DepartmentNode selectedDepartment;
 
     [ObservableProperty]
     private bool isLoading = false;
@@ -38,10 +45,76 @@ public partial class MainViewModel : ObservableObject
     public MainViewModel()
     {
         LoadDummyData();
+        VisibleEmployees = CollectionViewSource.GetDefaultView(AllEmployees);
+        VisibleEmployees.Filter = FilterEmployee;
     }
 
+    private bool FilterEmployee(object obj)
+    {
+        if (obj is not Employee emp) return false;
+
+        return true;
+    }
     private void LoadDummyData()
     {
+        // 1. Setup TreeView Data (Deep Hierarchical Structure)
+        AllDepartments.Clear();
+
+        var devDept = new DepartmentNode { Name = "Software Engineering" };
+        devDept.Children.Add(new DepartmentNode { Name = "Frontend Team" });
+        devDept.Children.Add(new DepartmentNode { Name = "Backend Team" });
+        devDept.Children.Add(new DepartmentNode { Name = "QA & Testing" });
+
+        var opsDept = new DepartmentNode { Name = "IT Operations" };
+        opsDept.Children.Add(new DepartmentNode { Name = "Cloud & DevOps" });
+        opsDept.Children.Add(new DepartmentNode { Name = "Cybersecurity" });
+        opsDept.Children.Add(new DepartmentNode { Name = "Network Administration" });
+
+        var supportDept = new DepartmentNode { Name = "Support Services" };
+        supportDept.Children.Add(new DepartmentNode { Name = "Tier 1 Helpdesk" });
+        supportDept.Children.Add(new DepartmentNode { Name = "Tier 2 Desktop Support" });
+
+        var corporateIT = new DepartmentNode { Name = "Enterprise IT Division" };
+        corporateIT.Children.Add(devDept);
+        corporateIT.Children.Add(opsDept);
+        corporateIT.Children.Add(supportDept);
+
+        AllDepartments.Add(corporateIT);
+
+        #region Second Child Branch: Digital Marketing & Operations
+        var creativeDept = new DepartmentNode { Name = "Creative & Design" };
+        creativeDept.Children.Add(new DepartmentNode { Name = "UI/UX Design" });
+        creativeDept.Children.Add(new DepartmentNode { Name = "Content Creation" });
+
+        var analyticsDept = new DepartmentNode { Name = "Data & Analytics" };
+        analyticsDept.Children.Add(new DepartmentNode { Name = "SEO & Growth" });
+        analyticsDept.Children.Add(new DepartmentNode { Name = "Business Intelligence" });
+
+        var marketingDept = new DepartmentNode { Name = "Marketing Operations" };
+        marketingDept.Children.Add(new DepartmentNode { Name = "Social Media" });
+        marketingDept.Children.Add(new DepartmentNode { Name = "Paid Advertising" });
+
+        var digitalMarketing = new DepartmentNode { Name = "Digital Marketing Division" };
+        digitalMarketing.Children.Add(creativeDept);
+        digitalMarketing.Children.Add(analyticsDept);
+        digitalMarketing.Children.Add(marketingDept);
+
+        AllDepartments.Add(digitalMarketing);
+        #endregion
+
+
+
+        // 2. Setup ComboBox Data (Granular Roles)
+        //Roles.Clear();
+        //Roles.Add(new Role { Id = 0, Name = "All Roles" });
+        //Roles.Add(new Role { Id = 1, Name = "Director / VP" });
+        //Roles.Add(new Role { Id = 2, Name = "Team Lead" });
+        //Roles.Add(new Role { Id = 3, Name = "Senior Engineer" });
+        //Roles.Add(new Role { Id = 4, Name = "Engineer" });
+        //Roles.Add(new Role { Id = 5, Name = "Security Analyst" });
+        //Roles.Add(new Role { Id = 6, Name = "Support Specialist" });
+
+
         // 3. Setup ListBox Data (Expanded Employee Roster)
         AllEmployees.Clear();
         AllEmployees.Add(new Employee { Name = "Sarah Jenkins", RoleId = 1, Department = "Enterprise IT Division" });

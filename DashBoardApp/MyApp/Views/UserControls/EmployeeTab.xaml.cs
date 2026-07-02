@@ -1,5 +1,8 @@
-﻿using System;
+﻿using DashBoardApp.Models;
+using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Data;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -18,6 +21,32 @@ namespace DashBoardApp.Views.UserControls
     /// </summary>
     public partial class EmployeeTab : UserControl
     {
+        public static readonly DependencyProperty DepartmentsProperty =
+            DependencyProperty.Register(
+                nameof(Departments),
+                typeof(ObservableCollection<DepartmentNode>),
+                typeof(EmployeeTab),
+                new PropertyMetadata(null));
+
+        public ObservableCollection<DepartmentNode> Departments
+        {
+            get => (ObservableCollection<DepartmentNode>)GetValue(DepartmentsProperty);
+            set => SetValue(DepartmentsProperty, value);
+        }
+
+        public static readonly DependencyProperty SelectedDepartmentProperty =
+            DependencyProperty.Register(
+                nameof(SelectedDepartment),
+                typeof(DepartmentNode),
+                typeof(EmployeeTab),
+                new PropertyMetadata(null));
+
+        public DepartmentNode SelectedDepartment
+        {
+            get => (DepartmentNode)GetValue(DepartmentsProperty);
+            set => SetValue(DepartmentsProperty, value);
+        }
+
         public EmployeeTab()
         {
             InitializeComponent();
