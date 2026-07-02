@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Solution/DashBoardAppSolution.csproj" />
+  <Project Path="MyApp/DashBoardApp.csproj" Id="00a8e86c-abdd-47c3-ae8a-56501b1bf935" />
+</Solution>

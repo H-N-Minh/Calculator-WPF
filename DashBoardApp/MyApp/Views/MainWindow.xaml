@@ -1,0 +1,17 @@
+﻿<Window x:Class="DashBoardApp.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:DashBoardApp"
+        xmlns:controls="clr-namespace:DashBoardApp.Controls"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="450" Width="800"
+        >
+    
+    <Grid RowDefinitions="Auto, Auto, *, Auto">
+        <controls:Menu Grid.Row="0"/>
+
+        <controls:StatusBar Grid.Row="3" IsLoading="True"/>
+    </Grid>
+</Window>
