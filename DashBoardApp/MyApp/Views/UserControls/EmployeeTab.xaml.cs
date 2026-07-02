@@ -1,4 +1,5 @@
-﻿using DashBoardApp.ViewModels;
+﻿using System;
+using System.Collections.Generic;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -10,18 +11,16 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-namespace DashBoardApp.Views
+namespace DashBoardApp.Views.UserControls
 {
     /// <summary>
-    /// Interaction logic for MainWindow.xaml
+    /// Interaction logic for EmployeeTab.xaml
     /// </summary>
-    public partial class MainWindow : Window
+    public partial class EmployeeTab : UserControl
     {
-        public MainWindow()
+        public EmployeeTab()
         {
             InitializeComponent();
-            MainViewModel mainVM = new MainViewModel();
-            DataContext = mainVM;
         }
     }
 }

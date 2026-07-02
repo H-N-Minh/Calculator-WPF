@@ -100,34 +100,10 @@ public partial class MainViewModel : ObservableObject
         Roles.Add(new Role { Id = 5, Name = "Security Analyst" });
         Roles.Add(new Role { Id = 6, Name = "Support Specialist" });
 
-        // 3. Setup ListBox Data (Expanded Employee Roster)
-        _allEmployees.Clear();
-        _allEmployees.Add(new Employee { Name = "Sarah Jenkins", RoleId = 1, Department = "Enterprise IT Division" });
-        _allEmployees.Add(new Employee { Name = "David Chen", RoleId = 2, Department = "Backend Team" });
-        _allEmployees.Add(new Employee { Name = "Elena Rostova", RoleId = 3, Department = "Frontend Team" });
-        _allEmployees.Add(new Employee { Name = "Marcus Aurelius", RoleId = 4, Department = "Backend Team" });
-        _allEmployees.Add(new Employee { Name = "Aisha Rahman", RoleId = 2, Department = "Cloud & DevOps" });
-        _allEmployees.Add(new Employee { Name = "John Doe", RoleId = 4, Department = "Cloud & DevOps" });
-        _allEmployees.Add(new Employee { Name = "Karen Smith", RoleId = 5, Department = "Cybersecurity" });
-        _allEmployees.Add(new Employee { Name = "Liam O'Connor", RoleId = 3, Department = "Network Administration" });
-        _allEmployees.Add(new Employee { Name = "Sanjay Patel", RoleId = 2, Department = "Tier 1 Helpdesk" });
-        _allEmployees.Add(new Employee { Name = "Chloe Dupont", RoleId = 6, Department = "Tier 1 Helpdesk" });
-        _allEmployees.Add(new Employee { Name = "Yuki Tanaka", RoleId = 6, Department = "Tier 2 Desktop Support" });
-        _allEmployees.Add(new Employee { Name = "Oliver Hansen", RoleId = 4, Department = "QA & Testing" });
 
         // Trigger filter refresh
         SelectedRoleId = 0;
         OnSelectedRoleIdChanged(0);
-
-        // 4. Setup ListView Data (Diverse Hardware Assets)
-        HardwareAssets.Clear();
-        HardwareAssets.Add(new HardwareAsset { AssetId = "LT-9921", Type = "MacBook Pro M3", Manufacturer = "Apple", AssignedTo = "Elena Rostova" });
-        HardwareAssets.Add(new HardwareAsset { AssetId = "LT-4412", Type = "ThinkPad P1 Gen 6", Manufacturer = "Lenovo", AssignedTo = "David Chen" });
-        HardwareAssets.Add(new HardwareAsset { AssetId = "SRV-8801", Type = "PowerEdge R760 Server", Manufacturer = "Dell", AssignedTo = "Aisha Rahman" });
-        HardwareAssets.Add(new HardwareAsset { AssetId = "SW-2209", Type = "Catalyst 9300 Switch", Manufacturer = "Cisco", AssignedTo = "Liam O'Connor" });
-        HardwareAssets.Add(new HardwareAsset { AssetId = "LT-1029", Type = "Latitude 5440", Manufacturer = "Dell", AssignedTo = "Chloe Dupont" });
-        HardwareAssets.Add(new HardwareAsset { AssetId = "MN-5541", Type = "UltraSharp 34\" Curved", Manufacturer = "Dell", AssignedTo = "David Chen" });
-        HardwareAssets.Add(new HardwareAsset { AssetId = "PH-3310", Type = "IP Phone 8841", Manufacturer = "Cisco", AssignedTo = "Yuki Tanaka" });
 
         // 5. Setup DataGrid Data (Expanded Software Licensing)
         SoftwareLicenses.Clear();

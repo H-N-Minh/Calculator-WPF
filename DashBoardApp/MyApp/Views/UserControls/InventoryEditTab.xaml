@@ -1,0 +1,49 @@
+﻿<UserControl x:Class="DashBoardApp.Views.UserControls.InventoryEditTab"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:DashBoardApp.Views.UserControls"
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="800"
+             x:Name="InventoryEditRoot">
+    <DataGrid AutoGenerateColumns="False" 
+              CanUserAddRows="False" 
+              ItemsSource="{Binding ItemsSource}"
+              DataContext="{Binding ElementName=InventoryEditRoot}">
+        <DataGrid.Columns>
+
+            <DataGridTemplateColumn Header="Select">
+                <DataGridTemplateColumn.CellTemplate>
+                    <DataTemplate>
+                        <CheckBox HorizontalAlignment="Center" 
+                                  VerticalAlignment="Center"/>
+                    </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
+            
+            <DataGridTextColumn Header="ID" Binding="{Binding AssetId}" IsReadOnly="True"/>
+            <DataGridTextColumn Header="Type" Binding="{Binding Type}"/>
+            <DataGridTextColumn Header="Manufacturer" Binding="{Binding Manufacturer}"/>
+           
+            <DataGridTemplateColumn Header="Responsible Employee">
+                <DataGridTemplateColumn.CellTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding AssignedTo.Name}"/>
+                    </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+
+                <DataGridTemplateColumn.CellEditingTemplate>
+                    <DataTemplate>
+                        <ComboBox ItemsSource="{Binding EmployeesSource, ElementName=InventoryEditRoot}"
+                                  SelectedItem="{Binding AssignedTo}"
+                                  DisplayMemberPath="Name"
+                                  IsDropDownOpen="True"
+                                  VerticalAlignment="Center"/>
+                    </DataTemplate>
+                </DataGridTemplateColumn.CellEditingTemplate>
+            </DataGridTemplateColumn>
+        </DataGrid.Columns>
+
+    </DataGrid>
+</UserControl>

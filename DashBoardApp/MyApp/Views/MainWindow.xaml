@@ -5,13 +5,35 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:DashBoardApp"
         xmlns:controls="clr-namespace:DashBoardApp.Controls"
+        xmlns:userControls="clr-namespace:DashBoardApp.Views.UserControls"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800"
+        Title="MainWindow" Height="600" Width="900"
         >
-    
-    <Grid RowDefinitions="Auto, Auto, *, Auto">
-        <controls:Menu Grid.Row="0"/>
 
-        <controls:StatusBar Grid.Row="3" IsLoading="True"/>
-    </Grid>
+    <DockPanel>
+        <controls:Menu DockPanel.Dock="Top"/>
+        <ToolBar DockPanel.Dock="Top">
+            <Button Content="Refresh"
+                    Background="LightBlue"/>
+        </ToolBar>
+        
+        <controls:MyStatusBar DockPanel.Dock="Bottom" 
+                              IsLoading="True"/>
+
+        <TabControl TabStripPlacement="Bottom">
+            <TabItem Header="Employee"/>
+            
+            <TabItem Header="Inventory">
+                <userControls:InventoryTab ItemsSource="{Binding Hardwares}" 
+                                           Margin="10"/>
+            </TabItem>
+            
+            <TabItem Header="Inventory (Editable)">
+                <userControls:InventoryEditTab ItemsSource="{Binding Hardwares}" 
+                                               Margin="10" 
+                                               EmployeesSource="{Binding AllEmployees}" />
+            </TabItem>
+        </TabControl>
+
+    </DockPanel>
 </Window>

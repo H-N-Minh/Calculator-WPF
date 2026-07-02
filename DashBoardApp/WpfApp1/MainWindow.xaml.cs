@@ -1,5 +1,4 @@
-﻿using DashBoardApp.ViewModels;
-using System.Text;
+﻿using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -10,7 +9,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-namespace DashBoardApp.Views
+namespace WpfApp1
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
@@ -20,8 +19,6 @@ namespace DashBoardApp.Views
         public MainWindow()
         {
             InitializeComponent();
-            MainViewModel mainVM = new MainViewModel();
-            DataContext = mainVM;
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="DashBoardApp.Controls.StatusBar"
+﻿<UserControl x:Class="DashBoardApp.Controls.MyStatusBar"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
@@ -7,40 +7,51 @@
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800"
              x:Name="RootCtrl">
-    <StatusBar Height="20" DataContext="{Binding ElementName=RootCtrl}">
-        <StatusBarItem HorizontalAlignment="Right">
-            <StackPanel Orientation="Horizontal">
-                <TextBlock  FontWeight="Bold">
-                    <TextBlock.Style>
-                        <Style TargetType="TextBlock">
-                            <Setter Property="Text" Value="Ready"/>
-                            <Setter Property="Foreground" Value="Green"/>
+    <StatusBar DataContext="{Binding ElementName=RootCtrl}"
+               Height="20"
+               Padding="5,0"
+               Background="LightCyan"
+               >
+        <StatusBar.Resources>
+            <!-- Override default StatusBarItem style to clear vertical padding -->
+            <Style TargetType="StatusBarItem">
+                <Setter Property="Padding" Value="5,0"/>
+                <Setter Property="VerticalAlignment" Value="Center"/>
+                <Setter Property="VerticalContentAlignment" Value="Center"/>
+            </Style>
+        </StatusBar.Resources>
+        
+        <StatusBarItem HorizontalAlignment="Left">
+            <TextBlock  FontWeight="Bold">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Text" Value="Ready"/>
+                        <Setter Property="Foreground" Value="Green"/>
 
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsLoading}">
-                                    <Setter Property="Text" Value="Loading..."/>
-                                    <Setter Property="Foreground" Value="Orange"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </TextBlock.Style>
-                </TextBlock>
-                
-                <ProgressBar IsIndeterminate="True">
-                    <ProgressBar.Style>
-                        <Style TargetType="ProgressBar">
-                            <Setter Property="Visibility" Value="Hidden"/>
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsLoading}"
-                                             Value="True">
-                                    <Setter Property="Visibility" Value="Visible"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </ProgressBar.Style>
-                </ProgressBar>
-                             
-            </StackPanel>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsLoading}" Value="True">
+                                <Setter Property="Text" Value="Loading..."/>
+                                <Setter Property="Foreground" Value="Orange"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+        </StatusBarItem>
+
+        <StatusBarItem HorizontalAlignment="Right">
+            <ProgressBar IsIndeterminate="True" Width="100" Height="15">
+                <ProgressBar.Style>
+                    <Style TargetType="ProgressBar">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsLoading}" Value="True">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ProgressBar.Style>
+            </ProgressBar>
         </StatusBarItem>
     </StatusBar>
 </UserControl>

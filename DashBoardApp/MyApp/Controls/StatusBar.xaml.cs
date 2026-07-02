@@ -16,7 +16,7 @@ namespace DashBoardApp.Controls
     /// <summary>
     /// Interaction logic for StatusBar.xaml
     /// </summary>
-    public partial class StatusBar : UserControl
+    public partial class MyStatusBar : UserControl
     {
         public bool IsLoading
         {
@@ -28,10 +28,10 @@ namespace DashBoardApp.Controls
             DependencyProperty.Register(
                                         nameof(IsLoading),
                                         typeof(bool),
-                                        typeof(StatusBar),
-                                        new PropertyMetadata(string.Empty)
+                                        typeof(MyStatusBar),
+                                        new PropertyMetadata(false)
                                         );
-        public StatusBar()
+        public MyStatusBar()
         {
             InitializeComponent();
         }
