@@ -16,22 +16,22 @@ namespace DashBoardApp.Controls
     /// <summary>
     /// Interaction logic for Menu.xaml
     /// </summary>
-    public partial class Menu : UserControl
+    public partial class CustomMenu : UserControl
     {
-        public static readonly DependencyProperty ExitAppProperty =
+        public static readonly DependencyProperty ExitCommandProperty =
             DependencyProperty.Register(
-                nameof(ExitApp),
+                nameof(ExitCommand),
                 typeof(ICommand),
                 typeof(Menu),
                 new PropertyMetadata(null));
 
-        public ICommand ExitApp
+        public ICommand ExitCommand
         {
-            get => (ICommand)GetValue(ExitAppProperty);
-            set => SetValue(ExitAppProperty, value);
+            get => (ICommand)GetValue(ExitCommandProperty);
+            set => SetValue(ExitCommandProperty, value);
         }
 
-        public Menu()
+        public CustomMenu()
         {
             InitializeComponent();
         }

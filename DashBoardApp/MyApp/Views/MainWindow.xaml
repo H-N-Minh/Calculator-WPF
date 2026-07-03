@@ -25,8 +25,6 @@
 
         <TabControl TabStripPlacement="Bottom">
             <TabItem Header="Employee">
-                <userControls:EmployeeTab Departments="{Binding AllDepartments}"
-                                          SelectedItem="{Binding SelectedDepartment}"/>
             </TabItem>
             
             <TabItem Header="Inventory">

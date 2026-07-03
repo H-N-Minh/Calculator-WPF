@@ -16,14 +16,7 @@
                   Padding="10"
                   Background="LightCyan"
                   x:Name="MyTreeView">
-            
-            <b:Interaction.Triggers>
-                <b:EventTrigger EventName="SelectedItemChanged">
-                    <b:InvokeCommandAction 
-                    Command="{Binding SelectNodeCommand}" 
-                    CommandParameter="{Binding SelectedItem, ElementName=MyTreeView}" />
-                </b:EventTrigger>
-            </b:Interaction.Triggers>
+  
             <TreeView.ItemTemplate>
                 <HierarchicalDataTemplate ItemsSource="{Binding Children}">
                     <TextBlock Text="{Binding Name}" 
