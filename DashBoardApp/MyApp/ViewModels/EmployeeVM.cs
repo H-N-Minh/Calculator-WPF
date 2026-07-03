@@ -29,18 +29,66 @@ public partial class EmployeeVM : ObservableObject
     // Selected Item
     [ObservableProperty]
     private DepartmentNode? selectedDepartment = null;
-    partial void OnSelectedDepartmentChanged(DepartmentNode? value)
+    partial void OnSelectedDepartmentChanged(DepartmentNode? value) => RefreshVisibleRoles();
+
+    [ObservableProperty]
+    private Role? selectedRole;
+    partial void OnSelectedRoleChanged(Role? value) => VisibleEmployees.Refresh();
+    
+    // Ctor
+    public EmployeeVM()
+    {
+        VisibleEmployees = CollectionViewSource.GetDefaultView(AllEmployees);
+        VisibleEmployees.Filter = FilterEmployee;
+
+        // Update the map whenever theres a change
+        AllDepartments.CollectionChanged += RefreshRoleDepartmentMap;
+        AllRoles.CollectionChanged += RefreshRoleDepartmentMap;
+
+        // Refresh the role list
+        RefreshVisibleRoles();
+    }
+
+    // Method
+    private void RefreshRoleDepartmentMap(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        RoleDeparmentMap.Clear();
+
+        foreach (Employee emp in AllEmployees)
+        {
+            int role = emp.RoleId;
+            int department = emp.DepartmentId;
+
+            ref var roleList = ref CollectionsMarshal.GetValueRefOrAddDefault<int, List<int>>(RoleDeparmentMap, department, out _);
+
+            roleList ??= new List<int>();
+
+            roleList.Add(role);
+        }
+
+        RefreshVisibleRoles();
+    }
+
+    private void RefreshVisibleRoles()
     {
         VisibleRoles.Clear();
-        HashSet<int> validRolesId = new();
 
-        if (value is null)
+        // Add a default role
+        Role allRoleOption = new Role { Id = -1, Name = "All Roles" };
+        VisibleRoles.Add(allRoleOption);
+        SelectedRole = allRoleOption;
+
+        HashSet<int> validRolesId = new();
+        if (SelectedDepartment is null)
         {
-            VisibleRoles = new ObservableCollection<Role>(AllRoles);
+            foreach (Role role in AllRoles)
+            {
+                VisibleRoles.Add(role);
+            }
         }
         else
         {
-            AccumulateRoleIdForSubTree(value);
+            AccumulateRoleIdForSubTree(SelectedDepartment);
             var filteredRoles = AllRoles.Where(role => validRolesId.Contains(role.Id));
             foreach (Role role in filteredRoles)
             {
@@ -65,46 +113,12 @@ public partial class EmployeeVM : ObservableObject
         }
     }
 
-    [ObservableProperty]
-    private Role? selectedRole;
-    partial void OnSelectedRoleChanged(Role? value) => VisibleEmployees.Refresh();
-    
-    // Ctor
-    public EmployeeVM()
-    {
-        VisibleEmployees = CollectionViewSource.GetDefaultView(AllEmployees);
-        VisibleEmployees.Filter = FilterEmployee;
-
-        // Update the map whenever theres a change
-        AllEmployees.CollectionChanged += RefreshRoleDepartmentMap;
-        AllDepartments.CollectionChanged += RefreshRoleDepartmentMap;
-        AllRoles.CollectionChanged += RefreshRoleDepartmentMap;
-    }
-
-    // Method
-    private void RefreshRoleDepartmentMap(object? sender, NotifyCollectionChangedEventArgs e)
-    {
-        RoleDeparmentMap.Clear();
-
-        foreach (Employee emp in AllEmployees)
-        {
-            int role = emp.RoleId;
-            int department = emp.DepartmentId;
-
-            ref var roleList = ref CollectionsMarshal.GetValueRefOrAddDefault<int, List<int>>(RoleDeparmentMap, department, out _);
-
-            roleList ??= new List<int>();
-
-            roleList.Add(role);
-        }
-    }
-
     // Filter
     private bool FilterEmployee(object obj)
     {
         if (obj is not Employee emp) return false;
 
-        if (SelectedRole is not null) return SelectedRole.Id == emp.RoleId;
+        if (SelectedRole is not null && SelectedRole.Id != -1) return SelectedRole.Id == emp.RoleId;
 
         return VisibleRoles.Any(r => r.Id == emp.RoleId);
     }

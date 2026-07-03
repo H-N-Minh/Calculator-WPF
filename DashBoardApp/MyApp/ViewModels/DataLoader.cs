@@ -27,7 +27,6 @@ public static class DataLoader
         AllRoles.Clear();
 
         // Standard Lookup Roles
-        AllRoles.Add(new Role { Id = 0, Name = "All Roles" });
         AllRoles.Add(new Role { Id = 1, Name = "Director / VP" });
         AllRoles.Add(new Role { Id = 2, Name = "Team Lead" });
         AllRoles.Add(new Role { Id = 3, Name = "Senior Engineer" });

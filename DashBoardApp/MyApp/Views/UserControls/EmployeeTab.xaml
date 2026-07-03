@@ -9,7 +9,8 @@
              d:DesignHeight="450" d:DesignWidth="800"
              x:Name="EmployeeTabRoot">
     <Grid ColumnDefinitions="Auto, Auto, *">
-
+        
+        <!--Left side view-->
         <TreeView ItemsSource="{Binding AllDepartments}"
                   Grid.Column="0"
                   BorderThickness="1"
@@ -30,5 +31,19 @@
                       Background="Aquamarine"
                       HorizontalAlignment="Stretch"
                       VerticalAlignment="Stretch"/>
+        
+        <!--Right side view-->
+        <Grid Grid.Column="2"
+              RowDefinitions="Auto, *">
+            <StackPanel Grid.Row="0"
+                        Orientation="Horizontal">
+                <TextBlock Text="Role: " Margin="5" FontWeight="Bold"/>
+                <ComboBox IsEditable="False"
+                          ItemsSource="{Binding VisibleRoles}"
+                          SelectedItem="{Binding SelectedRole}"
+                          DisplayMemberPath="Name"
+                          MinWidth="200"/>
+            </StackPanel>
+        </Grid>
     </Grid>
 </UserControl>
