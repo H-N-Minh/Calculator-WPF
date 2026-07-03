@@ -9,8 +9,8 @@
              d:DesignHeight="450" d:DesignWidth="800"
              x:Name="EmployeeTabRoot">
     <Grid ColumnDefinitions="Auto, Auto, *">
-        <TreeView ItemsSource="{Binding Departments}"
-                  DataContext="{Binding ElementName=EmployeeTabRoot}"
+
+        <TreeView ItemsSource="{Binding AllDepartments}"
                   Grid.Column="0"
                   BorderThickness="1"
                   Padding="10"

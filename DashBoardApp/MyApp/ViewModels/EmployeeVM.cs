@@ -9,6 +9,7 @@ using System.Data;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Data;
+using System.Xml.Linq;
 
 namespace DashBoardApp.ViewModels;
 
@@ -23,12 +24,46 @@ public partial class EmployeeVM : ObservableObject
 
     // Filtered list
     public ICollectionView VisibleEmployees { get; set; }
-    public ICollectionView VisibleRoles { get; set; }
+    public ObservableCollection<Role> VisibleRoles { get; set; } = new();
 
     // Selected Item
     [ObservableProperty]
-    private DepartmentNode? selectedDepartment;
-    partial void OnSelectedDepartmentChanged(DepartmentNode? value) => VisibleRoles.Refresh();
+    private DepartmentNode? selectedDepartment = null;
+    partial void OnSelectedDepartmentChanged(DepartmentNode? value)
+    {
+        VisibleRoles.Clear();
+        HashSet<int> validRolesId = new();
+
+        if (value is null)
+        {
+            VisibleRoles = new ObservableCollection<Role>(AllRoles);
+        }
+        else
+        {
+            AccumulateRoleIdForSubTree(value);
+            var filteredRoles = AllRoles.Where(role => validRolesId.Contains(role.Id));
+            foreach (Role role in filteredRoles)
+            {
+                VisibleRoles.Add(role);
+            }
+        }
+
+        void AccumulateRoleIdForSubTree(DepartmentNode node)
+        {
+            if (RoleDeparmentMap.TryGetValue(node.Id, out var roles))
+            {
+                foreach (var roleId in roles)
+                {
+                    validRolesId.Add(roleId); // HashSet automatically ignores duplicates
+                }
+            }
+
+            foreach (var child in node.Children)
+            {
+                AccumulateRoleIdForSubTree(child);
+            }
+        }
+    }
 
     [ObservableProperty]
     private Role? selectedRole;
@@ -39,9 +74,6 @@ public partial class EmployeeVM : ObservableObject
     {
         VisibleEmployees = CollectionViewSource.GetDefaultView(AllEmployees);
         VisibleEmployees.Filter = FilterEmployee;
-
-        VisibleRoles = CollectionViewSource.GetDefaultView(AllRoles);
-        VisibleRoles.Filter = FilterRole;
 
         // Update the map whenever theres a change
         AllEmployees.CollectionChanged += RefreshRoleDepartmentMap;
@@ -68,24 +100,12 @@ public partial class EmployeeVM : ObservableObject
     }
 
     // Filter
-    private bool FilterRole(object obj)
-    {
-        if (obj is not Role role) return false;
-        if (SelectedDepartment is null) return true;
-
-        List<int>? validRoles = RoleDeparmentMap.GetValueOrDefault(SelectedDepartment.Id);
-
-        return validRoles?.Contains(role.Id) ?? false;
-    }
-
     private bool FilterEmployee(object obj)
     {
         if (obj is not Employee emp) return false;
 
         if (SelectedRole is not null) return SelectedRole.Id == emp.RoleId;
 
-        VisibleRoles.Refresh();
-
-        return VisibleRoles.Cast<Role>().Any(r => r.Id == emp.RoleId);
+        return VisibleRoles.Any(r => r.Id == emp.RoleId);
     }
 }

@@ -25,6 +25,8 @@
 
         <TabControl TabStripPlacement="Bottom">
             <TabItem Header="Employee">
+                <userControls:EmployeeTab Margin="10"
+                                          DataContext="{Binding EmployeeViewModel}"/>
             </TabItem>
             
             <TabItem Header="Inventory">
