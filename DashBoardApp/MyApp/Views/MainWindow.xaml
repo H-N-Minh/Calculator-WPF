@@ -11,8 +11,8 @@
         >
 
     <DockPanel>
-        <controls:Menu DockPanel.Dock="Top"
-                       ExitApp="{Binding ExitAppCommand}"/>
+        <controls:CustomMenu DockPanel.Dock="Top"
+                             ExitCommand="{Binding ExitAppCommand}"/>
         
         <ToolBar DockPanel.Dock="Top">
             <Button Content="Refresh"
@@ -20,22 +20,21 @@
                     Command="{Binding RefreshCommand}"/>
         </ToolBar>
         
-        <controls:MyStatusBar DockPanel.Dock="Bottom" 
-                              IsLoading="{Binding IsLoading}"/>
+        <controls:CustomStatusBar DockPanel.Dock="Bottom" 
+                                  IsLoading="{Binding IsLoading}"/>
 
         <TabControl TabStripPlacement="Bottom">
             <TabItem Header="Employee">
             </TabItem>
             
             <TabItem Header="Inventory">
-                <userControls:InventoryTab ItemsSource="{Binding Hardwares}" 
-                                           Margin="10"/>
+                <userControls:InventoryTab Margin="10"
+                                           DataContext="{Binding InventoryViewModel}"/>
             </TabItem>
-            
+
             <TabItem Header="Inventory (Editable)">
-                <userControls:InventoryEditTab ItemsSource="{Binding Hardwares}" 
-                                               Margin="10" 
-                                               EmployeesSource="{Binding AllEmployees}" />
+                <userControls:InventoryEditTab Margin="10"
+                                               DataContext="{Binding InventoryViewModel}"/>
             </TabItem>
         </TabControl>
 

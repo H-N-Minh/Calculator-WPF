@@ -22,7 +22,7 @@ namespace DashBoardApp.Controls
             DependencyProperty.Register(
                 nameof(ExitCommand),
                 typeof(ICommand),
-                typeof(Menu),
+                typeof(CustomMenu),
                 new PropertyMetadata(null));
 
         public ICommand ExitCommand

@@ -11,7 +11,7 @@
     <Menu Grid.Row="0"
           DataContext="{Binding ElementName=MenuRoot}">
         <MenuItem Header="_File">
-            <MenuItem Header="E_xit" Command="{Binding ExitApp}"/>
+            <MenuItem Header="E_xit" Command="{Binding ExitCommand}"/>
             <Separator/>
             <MenuItem Header="_Edit"/>
         </MenuItem>

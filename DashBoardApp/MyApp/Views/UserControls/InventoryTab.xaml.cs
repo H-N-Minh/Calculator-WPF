@@ -20,19 +20,6 @@ namespace DashBoardApp.Views.UserControls
     /// </summary>
     public partial class InventoryTab : UserControl
     {
-        public static readonly DependencyProperty ItemsSourceProperty =
-            DependencyProperty.Register(
-                nameof(ItemsSource),
-                typeof(ObservableCollection<HardwareAsset>),
-                typeof(InventoryTab),
-                new PropertyMetadata(null));
-
-        public ObservableCollection<HardwareAsset> ItemsSource
-        {
-            get => (ObservableCollection<HardwareAsset>)GetValue(ItemsSourceProperty);
-            set => SetValue(ItemsSourceProperty, value);
-        }
-
         public InventoryTab()
         {
             InitializeComponent();

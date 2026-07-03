@@ -7,12 +7,13 @@
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800"
              x:Name="InventoryEditRoot">
+    
     <DataGrid AutoGenerateColumns="False" 
               CanUserAddRows="False" 
-              ItemsSource="{Binding ItemsSource}"
-              DataContext="{Binding ElementName=InventoryEditRoot}">
+              ItemsSource="{Binding Hardwares}">
         <DataGrid.Columns>
 
+            <!--1st column-->
             <DataGridTemplateColumn Header="Select">
                 <DataGridTemplateColumn.CellTemplate>
                     <DataTemplate>
@@ -22,10 +23,12 @@
                 </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>
             
+            <!--2nd to 4th collumn-->
             <DataGridTextColumn Header="ID" Binding="{Binding AssetId}" IsReadOnly="True"/>
             <DataGridTextColumn Header="Type" Binding="{Binding Type}"/>
             <DataGridTextColumn Header="Manufacturer" Binding="{Binding Manufacturer}"/>
            
+            <!--Last column-->
             <DataGridTemplateColumn Header="Responsible Employee">
                 <DataGridTemplateColumn.CellTemplate>
                     <DataTemplate>
@@ -35,7 +38,7 @@
 
                 <DataGridTemplateColumn.CellEditingTemplate>
                     <DataTemplate>
-                        <ComboBox ItemsSource="{Binding EmployeesSource, ElementName=InventoryEditRoot}"
+                        <ComboBox ItemsSource="{Binding DataContext.AllEmployees, ElementName=InventoryEditRoot}"
                                   SelectedItem="{Binding AssignedTo}"
                                   DisplayMemberPath="Name"
                                   IsDropDownOpen="True"

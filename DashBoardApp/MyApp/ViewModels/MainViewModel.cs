@@ -14,7 +14,7 @@ namespace DashBoardApp.ViewModels;
 public partial class MainViewModel : ObservableObject
 {
     // ViewModels
-    public InventoryVM InventoryViewModel {  get; set; } = new InventoryVM();
+    public InventoryVM InventoryViewModel {  get; set; }
     public EmployeeVM EmployeeViewModel { get; set; } = new EmployeeVM();
 
     // Properties
@@ -37,6 +37,7 @@ public partial class MainViewModel : ObservableObject
     // Ctor
     public MainViewModel()
     {
+        InventoryViewModel = new InventoryVM(EmployeeViewModel.AllEmployees);
         DataLoader.LoadDummyData(InventoryViewModel, EmployeeViewModel);
     }
 }
