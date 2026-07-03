@@ -1,4 +1,5 @@
 ﻿using DashBoardApp.Models;
+using DashBoardApp.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -25,6 +26,15 @@ namespace DashBoardApp.Views.UserControls
         public EmployeeTab()
         {
             InitializeComponent();
+        }
+
+        private void MyTreeView_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
+        {
+            if (DataContext is EmployeeVM viewModel && e.NewValue is DepartmentNode selectedDept)
+            {
+                // Hand it directly to your ViewModel's ObservableProperty!
+                viewModel.SelectedDepartment = selectedDept;
+            }
         }
     }
 }
