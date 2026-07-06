@@ -32,7 +32,6 @@ namespace DashBoardApp.Views.UserControls
         {
             if (DataContext is EmployeeVM viewModel && e.NewValue is DepartmentNode selectedDept)
             {
-                // Hand it directly to your ViewModel's ObservableProperty!
                 viewModel.SelectedDepartment = selectedDept;
             }
         }

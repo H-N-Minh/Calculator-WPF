@@ -121,6 +121,36 @@ public static class DataLoader
 
         // Note: DepartmentId = 21 (Paid Advertising Campaigns) is purposefully omitted here. It has NO employees.
         // Note: RoleId = 9 (Enterprise Architect) and 10 (DevOps Intern) are purposefully omitted. They have NO assigned employees.
+
+        // --- NEW CODE: Populate the flat RoleName and DepartmentName properties ---
+        foreach (var emp in AllEmployees)
+        {
+            // Resolve Role Name
+            var role = System.Linq.Enumerable.FirstOrDefault(employeeVM.AllRoles, r => r.Id == emp.RoleId);
+            if (role != null)
+            {
+                emp.RoleName = role.Name;
+            }
+
+            // Resolve Department Name from the hierarchy
+            emp.DepartmentName = FindDepartmentNameById(employeeVM.AllDepartments, emp.DepartmentId);
+        }
+    }
+
+    // Helper method to recursively search the Department tree structure
+    private static string FindDepartmentNameById(IEnumerable<DepartmentNode> nodes, int id)
+    {
+        if (nodes == null) return string.Empty;
+
+        foreach (var node in nodes)
+        {
+            if (node.Id == id) return node.Name;
+
+            var childMatch = FindDepartmentNameById(node.Children, id);
+            if (!string.IsNullOrEmpty(childMatch)) return childMatch;
+        }
+
+        return string.Empty;
     }
 
     private static void LoadHardwares(InventoryVM inventoryViewModel, ObservableCollection<Employee> allEmployees)

@@ -12,10 +12,16 @@ public partial class Employee : ObservableObject
     private int roleId;
 
     [ObservableProperty]
+    private int departmentId;
+
+    [ObservableProperty]
     private string name = string.Empty;
 
     [ObservableProperty]
-    private int departmentId;
+    private string roleName = string.Empty;
+
+    [ObservableProperty]
+    private string departmentName = string.Empty;
 }
 
 public partial class Role : ObservableObject
