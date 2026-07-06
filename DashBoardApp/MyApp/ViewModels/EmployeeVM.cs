@@ -15,12 +15,9 @@ namespace DashBoardApp.ViewModels;
 
 public partial class EmployeeVM : ObservableObject
 {
-    public ObservableCollection<Employee> AllEmployees { get; set; } = new();
-    public ObservableCollection<DepartmentNode> AllDepartments { get; set; } = new();
-    public ObservableCollection<Role> AllRoles { get; set; } = new();
-
-    // Roles map
-    public Dictionary<int, List<int>> RoleDeparmentMap = new();
+    public ObservableCollection<EmployeeVM> AllEmployees { get; set; } = new();
+    public ObservableCollection<DepartmentNodeVM> AllDepartments { get; set; } = new();
+    public ObservableCollection<RoleVM> AllRoles { get; set; } = new();
 
     // Filtered list
     public ICollectionView VisibleEmployees { get; set; }
@@ -76,7 +73,6 @@ public partial class EmployeeVM : ObservableObject
         // Add a default role
         Role allRoleOption = new Role { Id = -1, Name = "All Roles" };
         VisibleRoles.Add(allRoleOption);
-        SelectedRole = allRoleOption;
 
         HashSet<int> validRolesId = new();
         if (SelectedDepartment is null)
@@ -95,6 +91,7 @@ public partial class EmployeeVM : ObservableObject
                 VisibleRoles.Add(role);
             }
         }
+        SelectedRole = allRoleOption;
 
         void AccumulateRoleIdForSubTree(DepartmentNode node)
         {

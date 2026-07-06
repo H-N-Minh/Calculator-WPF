@@ -6,40 +6,27 @@ using System.Text;
 
 namespace DashBoardApp.Models;
 
-public partial class Employee : ObservableObject
+public class Employee
 {
-    [ObservableProperty]
-    private int roleId;
+    public int RoleId { get; set; }
 
-    [ObservableProperty]
-    private int departmentId;
+    public int DepartmentId {  get; set; }
 
-    [ObservableProperty]
-    private string name = string.Empty;
-
-    [ObservableProperty]
-    private string roleName = string.Empty;
-
-    [ObservableProperty]
-    private string departmentName = string.Empty;
+    public string Name { get; set; } = string.Empty;
 }
 
-public partial class Role : ObservableObject
+public class Role
 {
-    [ObservableProperty]
-    private int id;
+    public int Id { get; set; }
 
-    [ObservableProperty]
-    private string name = string.Empty;
+    public string Name { get; set; } = string.Empty;
 }
 
-public partial class DepartmentNode : ObservableObject
+public class DepartmentNode
 {
-    [ObservableProperty]
-    private int id;
+    public int Id;
 
-    [ObservableProperty]
-    private string name = string.Empty;
+    public string Name { get; set; } = string.Empty;
 
-    public ObservableCollection<DepartmentNode> Children { get; set; } = new();
+    public List<DepartmentNode> Children { get; set; } = new();
 }
