@@ -31,6 +31,8 @@ public partial class MainViewModel : ObservableObject
         IsLoading = true;
         await Task.Delay(2000);
         DataLoader.LoadDummyData(InventoryViewModel, EmployeeViewModel);
+
+        EmployeeViewModel.SelectedDepartment = null;
         IsLoading = false;
     }
 

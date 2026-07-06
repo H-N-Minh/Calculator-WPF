@@ -38,8 +38,10 @@ public partial class EmployeeTabVM : ObservableObject
     // Ctor
     public EmployeeTabVM()
     {
-        VisibleEmployees = CollectionViewSource.GetDefaultView(AllEmployees);
+        VisibleEmployees = new ListCollectionView(AllEmployees);
         VisibleEmployees.Filter = FilterEmployee;
+
+        AllRoles.CollectionChanged += (obj, arg) => RefreshVisibleRoles();
 
         // Refresh the role list
         RefreshVisibleRoles();
@@ -48,24 +50,18 @@ public partial class EmployeeTabVM : ObservableObject
     // Method
     private void RefreshVisibleRoles()
     {
-        VisibleRoles.Clear();
+        var updatedRoles = new HashSet<RoleVM>();
 
         // Add a default role
         RoleVM allRoleOption = new RoleVM(new Role { Id = -1, Name = "All Roles" });
-        VisibleRoles.Add(allRoleOption);
+        updatedRoles.Add(allRoleOption);
 
-        if (SelectedDepartment is null)
-        {
-            foreach (RoleVM role in AllRoles)
-            {
-                VisibleRoles.Add(role);
-            }
-        }
-        else
-        {
-            VisibleRoles = SelectedDepartment.GetAllRoles();
-        }
+        updatedRoles.UnionWith(SelectedDepartment is null
+                                ? AllRoles
+                                : SelectedDepartment.GetAllRoles()
+                                );
 
+        VisibleRoles = updatedRoles;
         SelectedRole = allRoleOption;
     }
 
@@ -75,8 +71,6 @@ public partial class EmployeeTabVM : ObservableObject
         if (obj is not EmployeeVM emp) return false;
 
         bool matchingRoles = false;
-        bool matchingDept = false;
-
         if (SelectedRole is not null && SelectedRole.Id != -1)
         {
             matchingRoles = SelectedRole.Id == emp.Role.Id;
@@ -86,14 +80,9 @@ public partial class EmployeeTabVM : ObservableObject
             matchingRoles = VisibleRoles.Any(r => r.Id == emp.Role.Id);
         }
 
-        if (SelectedDepartment is null)
-        {
-            matchingDept = true;
-        }
-        else
-        {
-            matchingDept = SelectedDepartment.Id == emp.Department.Id;
-        }
+        bool matchingDept = SelectedDepartment is null
+                            ? true
+                            : SelectedDepartment.HasDepartment(emp.Department.Id);
 
         return matchingRoles && matchingDept;
     }

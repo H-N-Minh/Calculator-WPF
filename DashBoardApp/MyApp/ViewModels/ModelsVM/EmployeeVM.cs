@@ -105,6 +105,21 @@ public partial class DepartmentNodeVM : ObservableObject
 
         return allRoles;
     }
+
+    public bool HasDepartment(int id)
+    {
+        if (Id == id) return true;
+
+        foreach (var child in Children)
+        {
+            if (child.HasDepartment(id))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }
 
 
