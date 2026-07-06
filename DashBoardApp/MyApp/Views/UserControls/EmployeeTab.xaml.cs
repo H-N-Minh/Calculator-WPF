@@ -30,7 +30,7 @@ namespace DashBoardApp.Views.UserControls
 
         private void MyTreeView_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
-            if (DataContext is EmployeeVM viewModel && e.NewValue is DepartmentNode selectedDept)
+            if (DataContext is EmployeeTabVM viewModel && e.NewValue is DepartmentNode selectedDept)
             {
                 viewModel.SelectedDepartment = selectedDept;
             }

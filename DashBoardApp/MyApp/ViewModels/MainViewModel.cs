@@ -15,7 +15,7 @@ public partial class MainViewModel : ObservableObject
 {
     // ViewModels
     public InventoryVM InventoryViewModel {  get; set; }
-    public EmployeeVM EmployeeViewModel { get; set; } = new EmployeeVM();
+    public EmployeeTabVM EmployeeViewModel { get; set; } = new EmployeeTabVM();
 
     // Properties
     [ObservableProperty]

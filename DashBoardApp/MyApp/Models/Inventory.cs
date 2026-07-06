@@ -1,4 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
+using DashBoardApp.ViewModels.ModelsVM;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -17,6 +18,6 @@ public partial class HardwareAsset : ObservableObject
     private string manufacturer = string.Empty;
 
     [ObservableProperty]
-    private Employee assignedTo;
+    private EmployeeVM assignedTo;
 }
 
