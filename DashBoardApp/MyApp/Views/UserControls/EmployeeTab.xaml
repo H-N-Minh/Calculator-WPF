@@ -73,14 +73,14 @@
                                            Foreground="DarkGreen"
                                            FontSize="15">
                                     <Run Text="Role: "/>
-                                    <Run Text="{Binding RoleName}" FontWeight="DemiBold"/>
+                                    <Run Text="{Binding Role.Name}" FontWeight="DemiBold"/>
                                 </TextBlock>
 
                                 <TextBlock FontStyle="Italic"
                                            Foreground="DarkGreen"
                                            FontSize="15">
                                     <Run Text="Department: "/>
-                                    <Run Text="{Binding DepartmentName}" FontWeight="DemiBold"/>
+                                    <Run Text="{Binding Department.Name}" FontWeight="DemiBold"/>
                                 </TextBlock>
                                 
                             </StackPanel>

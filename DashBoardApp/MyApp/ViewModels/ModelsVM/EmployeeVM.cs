@@ -57,6 +57,8 @@ public partial class DepartmentNodeVM : ObservableObject
 {
     public static Dictionary<int, DepartmentNodeVM> AllDepartments = new();
 
+    public HashSet<RoleVM> Roles { get; set; } = new();
+
     [ObservableProperty]
     private int id;
 
@@ -82,6 +84,26 @@ public partial class DepartmentNodeVM : ObservableObject
                 Children.Add(new DepartmentNodeVM(child));
             }
         }
+    }
+
+    public HashSet<RoleVM> GetAllRoles()
+    {
+        HashSet<RoleVM> allRoles = new();
+
+        foreach (var role in Roles)
+        {
+            allRoles.Add(role);
+        }
+
+        foreach (var child in Children)
+        {
+            foreach (var role in child.GetAllRoles())
+            {
+                allRoles.Add(role);
+            }
+        }
+
+        return allRoles;
     }
 }
 

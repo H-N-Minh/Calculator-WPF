@@ -141,6 +141,11 @@ public static class DataLoader
         foreach (var empModel in rawEmployees)
         {
             employeeViewModel.AllEmployees.Add(new EmployeeVM(empModel));
+
+            DepartmentNodeVM dept = DepartmentNodeVM.AllDepartments[empModel.DepartmentId];
+            RoleVM role = RoleVM.AllRoles[empModel.RoleId];
+
+            dept.Roles.Add(role);
         }
 
         // 5. Load Hardware Assets
