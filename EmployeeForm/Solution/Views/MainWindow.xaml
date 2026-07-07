@@ -1,0 +1,131 @@
+﻿<Window x:Class="EmployeeForm.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:EmployeeForm"
+        xmlns:viewmodels="clr-namespace:EmployeeForm.ViewModels"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="450" Width="800">
+    <Window.DataContext>
+        <viewmodels:MainViewModel />
+    </Window.DataContext>
+
+    <Window.Resources>
+        <!-- Style to show Validation Errors below TextBoxes -->
+        <Style TargetType="TextBox">
+            <Setter Property="Margin" Value="0,0,0,10"/>
+            <Setter Property="Validation.ErrorTemplate">
+                <Setter.Value>
+                    <ControlTemplate>
+                        <StackPanel>
+                            <AdornedElementPlaceholder x:Name="placeholder"/>
+                            <TextBlock Foreground="Red" FontSize="11" 
+                                       Text="{Binding ElementName=placeholder, Path=AdornedElement.(Validation.Errors)[0].ErrorContent}"/>
+                        </StackPanel>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Custom ControlTemplate for a Round Button -->
+        <ControlTemplate x:Key="RoundButtonTemplate" TargetType="Button">
+            <Border Background="{TemplateBinding Background}" 
+                    BorderBrush="{TemplateBinding BorderBrush}" 
+                    BorderThickness="1" 
+                    CornerRadius="15">
+                <!-- CornerRadius makes it round -->
+                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="15,5"/>
+            </Border>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Background" Value="LightGray"/>
+                    <Setter Property="Foreground" Value="DarkGray"/>
+                </Trigger>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#1E88E5"/>
+                </Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate>
+    </Window.Resources>
+
+    <Grid Margin="10">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="1*"/>
+            <ColumnDefinition Width="1.5*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- PART 1: DATA ENTRY FORM -->
+        <StackPanel Grid.Column="0" Margin="0,0,20,0">
+            <TextBlock Text="New Employee" FontWeight="Bold" FontSize="16" Margin="0,0,0,10"/>
+
+            <TextBlock Text="Name:"/>
+            <!-- UpdateSourceTrigger=PropertyChanged is vital for real-time validation & CanExecute checks -->
+            <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}"/>
+
+            <TextBlock Text="Email:"/>
+            <TextBox Text="{Binding Email, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}"/>
+
+            <TextBlock Text="Age:"/>
+            <TextBox Text="{Binding Age, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}"/>
+
+            <TextBlock Text="Department:"/>
+            <ComboBox SelectedItem="{Binding Department}" Margin="0,0,0,15">
+                <System:String xmlns:System="clr-namespace:System;assembly=mscorlib">IT</System:String>
+                <System:String xmlns:System="clr-namespace:System;assembly=mscorlib">HR</System:String>
+                <System:String xmlns:System="clr-namespace:System;assembly=mscorlib">Sales</System:String>
+            </ComboBox>
+
+            <!-- Dynamic Summary TextBlock -->
+            <TextBlock Text="{Binding Summary}" FontStyle="Italic" Foreground="Gray" Margin="0,0,0,15"/>
+
+            <!-- Button utilizing Custom ControlTemplate & RelayCommand -->
+            <Button Content="Submit Employee" 
+                    Command="{Binding SubmitCommand}" 
+                    Template="{StaticResource RoundButtonTemplate}"
+                    Background="#2196F3" Foreground="White"/>
+        </StackPanel>
+
+        <!-- PART 2: DIRECTORY / LIST -->
+        <Border Grid.Column="1" BorderBrush="LightGray" BorderThickness="1" Padding="10">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Text="Employee Directory" FontWeight="Bold" FontSize="16" Margin="0,0,0,10"/>
+
+                <ListBox Grid.Row="1" ItemsSource="{Binding EmployeesView}" BorderThickness="0">
+
+                    <!-- MANDATORY GROUPSTYLE: Defines the look of the Group Headers -->
+                    <ListBox.GroupStyle>
+                        <GroupStyle>
+                            <GroupStyle.HeaderTemplate>
+                                <DataTemplate>
+                                    <Border Background="#E0F7FA" Padding="5" Margin="0,5,0,2">
+                                        <!-- The "Name" property here belongs to the internal WPF CollectionViewGroup -->
+                                        <TextBlock Text="{Binding Name, StringFormat='Age Range: {0}'}" 
+                                                   FontWeight="Bold" Foreground="#006064"/>
+                                    </Border>
+                                </DataTemplate>
+                            </GroupStyle.HeaderTemplate>
+                        </GroupStyle>
+                    </ListBox.GroupStyle>
+
+                    <!-- DATATEMPLATE: Defines how the actual Employee object looks -->
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Margin="10,5">
+                                <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="14"/>
+                                <TextBlock Text="{Binding Email}" FontStyle="Italic" Foreground="Gray"/>
+                                <TextBlock Text="{Binding Department, StringFormat='Dept: {0}'}" FontSize="11"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+
+                </ListBox>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

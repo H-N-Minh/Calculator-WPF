@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="MySolution/MySolution.csproj" Id="c4d36bb2-ac78-490e-9782-2f43ad72ac75" />
+  <Project Path="Solution/EmployeeFormSolution.csproj" />
+</Solution>
