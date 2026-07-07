@@ -51,7 +51,7 @@
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                 <ListBox.ItemsPanel>
                     <ItemsPanelTemplate>
-                        <WrapPanel></WrapPanel>
+                        <WrapPanel ></WrapPanel>
                     </ItemsPanelTemplate>
                 </ListBox.ItemsPanel>
 

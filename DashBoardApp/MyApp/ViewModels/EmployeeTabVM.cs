@@ -24,7 +24,7 @@ public partial class EmployeeTabVM : ObservableObject
     public ICollectionView VisibleEmployees { get; set; }
 
     [ObservableProperty]
-    private HashSet<RoleVM> visibleRoles = new();
+    private ObservableHashSet<RoleVM> visibleRoles = new(new HashSet<RoleVM>());
 
     // Selected Item
     [ObservableProperty]
@@ -50,18 +50,17 @@ public partial class EmployeeTabVM : ObservableObject
     // Method
     private void RefreshVisibleRoles()
     {
-        var updatedRoles = new HashSet<RoleVM>();
+        VisibleRoles.Clear();
 
         // Add a default role
         RoleVM allRoleOption = new RoleVM(new Role { Id = -1, Name = "All Roles" });
-        updatedRoles.Add(allRoleOption);
+        VisibleRoles.Add(allRoleOption);
 
-        updatedRoles.UnionWith(SelectedDepartment is null
+        VisibleRoles.UnionWith(SelectedDepartment is null
                                 ? AllRoles
                                 : SelectedDepartment.GetAllRoles()
                                 );
 
-        VisibleRoles = updatedRoles;
         SelectedRole = allRoleOption;
     }
 
