@@ -32,6 +32,9 @@ public class HomeVM : ViewModelBase
         }
     }
 
+    public int Subtract
+        => 
+
     public Visibility IsPlaceHolderVisible => string.IsNullOrEmpty(SearchQuery) ? Visibility.Visible : Visibility.Hidden;
 
 

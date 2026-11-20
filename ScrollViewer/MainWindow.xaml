@@ -1,0 +1,52 @@
+﻿<Window x:Class="ScrollViewers.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:ScrollViewers"
+        xmlns:controls="clr-namespace:WpfApp.Controls"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="450" Width="800">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12"
+                  controls:ScrollViewerCorrector.FixScrolling="True">
+        <StackPanel>
+            <TextBlock Text="Outer ScrollViewer (Top)" FontWeight="Bold" Margin="0,0,0,10" />
+            <Border Height="120" Background="#E3F2FD" Margin="0,0,0,10">
+                <TextBlock Text="Outer content..." Margin="8" />
+            </Border>
+
+            <!-- 2. Middle ScrollViewer -->
+            <ScrollViewer Height="180" VerticalScrollBarVisibility="Auto" BorderBrush="Gray" BorderThickness="1" Padding="10"
+                          controls:ScrollViewerCorrector.FixScrolling="True">
+                <StackPanel>
+                    <TextBlock Text="Middle ScrollViewer (Top)" FontWeight="Bold" Margin="0,0,0,8" />
+                    <Border Height="90" Background="#E8F5E9" Margin="0,0,0,8">
+                        <TextBlock Text="Middle content..." Margin="8" />
+                    </Border>
+
+                    <!-- 3. Inner ScrollViewer -->
+                    <ScrollViewer Height="100" VerticalScrollBarVisibility="Auto" BorderBrush="DarkGray" BorderThickness="1" Padding="8"
+                                  controls:ScrollViewerCorrector.FixScrolling="True">
+                        <StackPanel>
+                            <TextBlock Text="Inner ScrollViewer (Top)" FontWeight="Bold" Margin="0,0,0,6" />
+                            <Border Height="80" Background="#FFF3E0" Margin="0,0,0,6">
+                                <TextBlock Text="Inner item 1" Margin="6" />
+                            </Border>
+                            <Border Height="80" Background="#FFE0B2">
+                                <TextBlock Text="Inner item 2 (Bottom)" Margin="6" />
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <Border Height="90" Background="#E8F5E9" Margin="0,8,0,0">
+                        <TextBlock Text="More middle content (Bottom)" Margin="8" />
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <Border Height="150" Background="#E3F2FD" Margin="0,10,0,0">
+                <TextBlock Text="More outer content (Bottom)" Margin="8" />
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Window>
