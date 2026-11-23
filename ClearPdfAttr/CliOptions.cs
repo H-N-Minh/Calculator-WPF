@@ -35,12 +35,6 @@ internal sealed record CliOptions(
                         return false;
                     break;
 
-                case "-l" or "--log":
-                    if (i + 1 >= args.Length)
-                        return false;
-                    logPath = args[++i];
-                    break;
-
                 case var arg when arg.StartsWith('-') || rootDir is not null:
                     return false;
 
