@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="../ClearPdfAttrib.Tests/ClearPdfAttrib.Tests.csproj" />
+  <Project Path="ClearPdfAttrib.csproj" />
+</Solution>
