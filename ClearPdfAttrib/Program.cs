@@ -208,7 +208,7 @@ internal static class Program
 
             Exit codes:
               0  Completed with zero file/directory failures
-              1  Startup/argument error or cancelled by user
+              1  Error during execution: zB: Startup/argument error or cancelled by user
               2  Completed, but one or more files or directories failed
             """);
     }

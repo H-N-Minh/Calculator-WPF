@@ -45,38 +45,9 @@ public static class PdfBatchProcessor
         ProcessingOptions options,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(options);
-        ArgumentException.ThrowIfNullOrWhiteSpace(options.RootDirectory);
-        ArgumentOutOfRangeException.ThrowIfLessThan(options.MaxParallelism, 1);
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(options.MaxParallelism, 64);
+        OptionsErrorHandling(options);
 
-        if (!Directory.Exists(options.RootDirectory))
-        {
-            throw new DirectoryNotFoundException(
-                $"Directory does not exist or is unreachable: '{options.RootDirectory}'");
-        }
-
-        // Fail fast if the root directory itself is inaccessible.
-        using (IEnumerator<string> probe = Directory.EnumerateFileSystemEntries(options.RootDirectory).GetEnumerator())
-        {
-            probe.MoveNext();
-        }
-
-        if (!options.Quiet)
-        {
-            Console.WriteLine("ClearPdfAttrib - Recursive PDF Metadata Cleaner (Title, Author, Creator)");
-            Console.WriteLine($"Root directory     : {options.RootDirectory}");
-            Console.WriteLine($"Mode               : {(options.DryRun ? "DRY-RUN (no files will be modified)" : "LIVE (in-place atomic replace)")}");
-            Console.WriteLine($"Parallel workers   : {options.MaxParallelism}");
-            Console.WriteLine($"Skip signed PDFs   : {options.SkipSigned}");
-            Console.WriteLine($"Progress interval  : every {options.ProgressInterval:N0} files");
-            Console.WriteLine($"Transient retries  : {options.MaxRetries}");
-            if (!string.IsNullOrEmpty(options.ErrorLogPath))
-            {
-                Console.WriteLine($"Error log          : {Path.GetFullPath(options.ErrorLogPath)}");
-            }
-            Console.WriteLine();
-        }
+        PrintProgramStartInfo(options);
 
         using var stats = new ProcessingStatistics(
             options.ErrorLogPath,
@@ -112,4 +83,47 @@ public static class PdfBatchProcessor
             Elapsed: stats.Elapsed,
             ErrorLogPath: stats.ErrorLogPath);
     }
+
+    private static void PrintProgramStartInfo(ProcessingOptions options)
+    {
+        if (!options.Quiet)
+        {
+            Console.WriteLine("--------- PROGRAM START ---------");
+            Console.WriteLine($"Root directory     : {options.RootDirectory}");
+            Console.WriteLine($"Mode               : {(options.DryRun ? "DRY-RUN (no files will be modified)" : "LIVE (in-place atomic replace)")}");
+            Console.WriteLine($"Parallel workers   : {options.MaxParallelism}");
+            Console.WriteLine($"Skip signed PDFs   : {options.SkipSigned}");
+            Console.WriteLine($"Progress interval  : Progress report at every {options.ProgressInterval:N0} files");
+            Console.WriteLine($"Max retries  : {options.MaxRetries}");
+            if (!string.IsNullOrEmpty(options.ErrorLogPath))
+            {
+                Console.WriteLine($"Error log          : {Path.GetFullPath(options.ErrorLogPath)}");
+            }
+            Console.WriteLine();
+        }
+    }
+
+    /// <summary>
+    /// Quick error handling if the Options has invalid arg or the root directory doesnt exist or we dont have access rights to it.
+    /// </summary>
+    private static void OptionsErrorHandling(ProcessingOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentException.ThrowIfNullOrWhiteSpace(options.RootDirectory);
+        ArgumentOutOfRangeException.ThrowIfLessThan(options.MaxParallelism, 1);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(options.MaxParallelism, 64);
+
+        if (!Directory.Exists(options.RootDirectory))
+        {
+            throw new DirectoryNotFoundException(
+                $"Directory does not exist or is unreachable: '{options.RootDirectory}'");
+        }
+
+        // Fail fast if the root directory itself is inaccessible.
+        using (IEnumerator<string> probe = Directory.EnumerateFileSystemEntries(options.RootDirectory).GetEnumerator())
+        {
+            probe.MoveNext();
+        }
+    }
+
 }

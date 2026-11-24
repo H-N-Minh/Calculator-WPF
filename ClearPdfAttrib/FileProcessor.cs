@@ -14,7 +14,7 @@ public sealed record ProcessingOptions(
     bool DryRun = false,
     bool SkipSigned = false,
     bool IgnoreInaccessibleDirectories = false,
-    int ProgressInterval = 10_000,
+    int ProgressInterval = 20_000,
     int MaxRetries = 3,
     string? ErrorLogPath = null,
     bool Quiet = false);
