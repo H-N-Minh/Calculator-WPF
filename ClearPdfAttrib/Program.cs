@@ -62,12 +62,12 @@ internal static class Program
         }
 
         string? rootDirectory = null;
-        int parallel = 4;
-        bool dryRun = false;
-        bool skipSigned = false;
-        bool ignoreInaccessibleDirs = false;
-        int progressInterval = 10_000;
-        int retries = 3;
+        int? parallel = null;
+        bool? dryRun = null;
+        bool? skipSigned = null;
+        bool? ignoreInaccessibleDirs = null;
+        int? progressInterval = null;
+        int? retries = null;
         string errorLog = $"ClearPdfAttrib-errors-{DateTime.Now:yyyyMMdd-HHmmss}.log";
 
         for (int i = 0; i < args.Length; i++)
@@ -95,24 +95,27 @@ internal static class Program
                     break;
 
                 case "--parallel":
-                    if (!TryReadPositiveInt(args, ref i, "--parallel", 1, 64, out parallel, out error))
+                    if (!TryReadPositiveInt(args, ref i, "--parallel", 1, 64, out int parsedParallel, out error))
                     {
                         return false;
                     }
+                    parallel = parsedParallel;
                     break;
 
                 case "--progress-interval":
-                    if (!TryReadPositiveInt(args, ref i, "--progress-interval", 1, 1_000_000, out progressInterval, out error))
+                    if (!TryReadPositiveInt(args, ref i, "--progress-interval", 1, 500_000, out int parsedProgressInterval, out error))
                     {
                         return false;
                     }
+                    progressInterval = parsedProgressInterval;
                     break;
 
                 case "--retries":
-                    if (!TryReadPositiveInt(args, ref i, "--retries", 0, 10, out retries, out error))
+                    if (!TryReadPositiveInt(args, ref i, "--retries", 0, 10, out int parsedRetries, out error))
                     {
                         return false;
                     }
+                    retries = parsedRetries;
                     break;
 
                 case "--error-log":
@@ -148,15 +151,14 @@ internal static class Program
             return false;
         }
 
-        options = new ProcessingOptions(
-            RootDirectory: rootDirectory,
-            MaxParallelism: parallel,
-            DryRun: dryRun,
-            SkipSigned: skipSigned,
-            IgnoreInaccessibleDirectories: ignoreInaccessibleDirs,
-            ProgressInterval: progressInterval,
-            MaxRetries: retries,
-            ErrorLogPath: errorLog);
+        options = new ProcessingOptions(rootDirectory);
+        if (parallel is not null) options = options with { MaxParallelism = parallel.Value };
+        if (dryRun is not null) options = options with { DryRun = dryRun.Value };
+        if (skipSigned is not null) options = options with { SkipSigned = skipSigned.Value };
+        if (ignoreInaccessibleDirs is not null) options = options with { IgnoreInaccessibleDirectories = ignoreInaccessibleDirs.Value };
+        if (progressInterval is not null) options = options with { ProgressInterval = progressInterval.Value };
+        if (retries is not null) options = options with { MaxRetries = retries.Value };
+        if (errorLog is not null) options = options with { ErrorLogPath = errorLog };
 
         return true;
     }
