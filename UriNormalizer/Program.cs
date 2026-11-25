@@ -7,11 +7,11 @@ using System.Text.Json.Serialization;
 using BdewUriNormalization;
 
 string[] jsonPaths = args.Length > 0
-    ? args
-    : ["C:\\SDKDevSign\\Training\\WPF Programns\\UriNormalizer\\unified\\Tests.json",
-        "C:\\SDKDevSign\\Training\\WPF Programns\\UriNormalizer\\unified\\gpt.json",
-        "C:\\SDKDevSign\\Training\\WPF Programns\\UriNormalizer\\unified\\Gem.json",
-        "C:\\SDKDevSign\\Training\\WPF Programns\\UriNormalizer\\unified\\claud.json"];
+    ? args :
+        //: ["C:\\SDKDevSign\\Training\\WPF Programns\\UriNormalizer\\unified\\Tests.json",
+        //    "C:\\SDKDevSign\\Training\\WPF Programns\\UriNormalizer\\unified\\gpt.json",
+        ["C:\\SDKDevSign\\Training\\WPF Programns\\UriNormalizer\\unified\\Gem.json"];
+        //"C:\\SDKDevSign\\Training\\WPF Programns\\UriNormalizer\\unified\\claud.json"];
 
 var jsonOptions = new JsonSerializerOptions
 {

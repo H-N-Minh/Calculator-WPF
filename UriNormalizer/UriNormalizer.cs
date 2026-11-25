@@ -4,6 +4,8 @@
 
 using System.Globalization;
 using System.Text;
+using System.Net;
+using System.Net.Sockets;
 
 namespace BdewUriNormalization;
 
@@ -16,6 +18,7 @@ public static class UriNormalizer
     {
         // 1. Parse raw components without System.Uri side effects
         ParsedUri uri = ParseUri(input);
+        ValidateUriComponents(uri);
 
         // 2. Lowercase scheme (RFC 3986 Section 6.2.2.1)
         uri.Scheme = uri.Scheme.ToLowerInvariant();
@@ -47,6 +50,120 @@ public static class UriNormalizer
         // 7. Reconstruct normalized URI preserving delimiters (?, #, @, trailing '/')
         return SerializeUri(uri);
     }
+
+    private static void ValidateUriComponents(ParsedUri uri)
+    {
+        if (uri.UserInfo is not null)
+        {
+            ValidateAllowedChars(uri.UserInfo, "userinfo", static c => IsUnreserved(c) || IsSubDelim(c) || c == ':');
+        }
+
+        if (uri.HasAuthority && !string.IsNullOrEmpty(uri.Host))
+        {
+            ValidateHost(uri.Host);
+        }
+
+        ValidateAllowedChars(uri.Path, "path", static c => IsPchar(c) || c == '/');
+
+        if (uri.Query is not null)
+        {
+            ValidateAllowedChars(uri.Query, "query", static c => IsPchar(c) || c == '/' || c == '?');
+        }
+
+        if (uri.Fragment is not null)
+        {
+            ValidateAllowedChars(uri.Fragment, "fragment", static c => IsPchar(c) || c == '/' || c == '?');
+        }
+    }
+
+    private static void ValidateHost(string host)
+    {
+        if (host.StartsWith('['))
+        {
+            if (!IsValidIpLiteral(host))
+            {
+                throw new FormatException($"Invalid IP literal in host '{host}'.");
+            }
+
+            return;
+        }
+
+        ValidateAllowedChars(host, "host", static c => IsUnreserved(c) || IsSubDelim(c));
+    }
+
+    private static bool IsValidIpLiteral(string host)
+    {
+        if (!host.EndsWith(']') || host.Length < 4)
+        {
+            return false;
+        }
+
+        string inner = host[1..^1];
+
+        // IPvFuture = "v" 1*HEXDIG "." 1*( unreserved / sub-delims / ":" )
+        if (inner[0] == 'v' || inner[0] == 'V')
+        {
+            int dot = inner.IndexOf('.');
+            if (dot <= 1 || dot == inner.Length - 1)
+            {
+                return false;
+            }
+
+            for (int i = 1; i < dot; i++)
+            {
+                if (!IsHexDigit(inner[i])) return false;
+            }
+
+            for (int i = dot + 1; i < inner.Length; i++)
+            {
+                char c = inner[i];
+                if (!IsUnreserved(c) && !IsSubDelim(c) && c != ':') return false;
+            }
+
+            return true;
+        }
+
+        // IPv6address: only HEXDIG, ':', '.' allowed per RFC 3986
+        foreach (char c in inner)
+        {
+            if (!IsHexDigit(c) && c != ':' && c != '.')
+            {
+                return false;
+            }
+        }
+
+        return IPAddress.TryParse(inner, out IPAddress? ip) &&
+               ip.AddressFamily == AddressFamily.InterNetworkV6;
+    }
+
+    private static void ValidateAllowedChars(string value, string componentName, Func<char, bool> isAllowed)
+    {
+        for (int i = 0; i < value.Length; i++)
+        {
+            char c = value[i];
+            if (c == '%')
+            {
+                if (i + 2 >= value.Length || !IsHexDigit(value[i + 1]) || !IsHexDigit(value[i + 2]))
+                {
+                    throw new FormatException($"Invalid percent-encoding in {componentName} at index {i}.");
+                }
+
+                i += 2;
+                continue;
+            }
+
+            if (!isAllowed(c))
+            {
+                throw new FormatException($"Invalid character '{c}' (0x{(int)c:X2}) in {componentName}.");
+            }
+        }
+    }
+
+    private static bool IsSubDelim(char c) =>
+        c is '!' or '$' or '&' or '\'' or '(' or ')' or '*' or '+' or ',' or ';' or '=';
+
+    private static bool IsPchar(char c) =>
+        IsUnreserved(c) || IsSubDelim(c) || c == ':' || c == '@';
 
     private static ParsedUri ParseUri(string input)
     {
