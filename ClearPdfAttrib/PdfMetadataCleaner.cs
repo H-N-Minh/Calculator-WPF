@@ -4,6 +4,7 @@
 using iText.Kernel.Exceptions;
 using iText.Kernel.Pdf;
 using iText.Kernel.XMP;
+using iText.Signatures;
 
 namespace ClearPdfAttrib;
 
@@ -122,57 +123,12 @@ public static class PdfMetadataCleaner
 
     private static bool HasDigitalSignatures(PdfDocument pdf)
     {
-        PdfDictionary catalogDict = pdf.GetCatalog().GetPdfObject();
-
-        PdfDictionary? perms = catalogDict.GetAsDictionary(PdfName.Perms);
+        PdfDictionary? perms = pdf.GetCatalog().GetPdfObject().GetAsDictionary(PdfName.Perms);
         if (perms is not null && (perms.ContainsKey(PdfName.DocMDP) || perms.ContainsKey(PdfName.UR3)))
         {
             return true;
         }
 
-        PdfDictionary? acroForm = catalogDict.GetAsDictionary(PdfName.AcroForm);
-        PdfArray? fields = acroForm?.GetAsArray(PdfName.Fields);
-        if (fields is null || fields.IsEmpty())
-        {
-            return false;
-        }
-
-        var visited = new HashSet<PdfDictionary>(ReferenceEqualityComparer.Instance);
-        var stack = new Stack<(PdfDictionary Field, PdfName? InheritedFt)>();
-
-        for (int i = 0; i < fields.Size(); i++)
-        {
-            PdfDictionary? field = fields.GetAsDictionary(i);
-            if (field is not null && visited.Add(field))
-            {
-                stack.Push((field, null));
-            }
-        }
-
-        while (stack.Count > 0)
-        {
-            (PdfDictionary field, PdfName? inheritedFt) = stack.Pop();
-            PdfName? effectiveFt = field.GetAsName(PdfName.FT) ?? inheritedFt;
-
-            if (PdfName.Sig.Equals(effectiveFt) && field.ContainsKey(PdfName.V))
-            {
-                return true;
-            }
-
-            PdfArray? kids = field.GetAsArray(PdfName.Kids);
-            if (kids is not null)
-            {
-                for (int i = 0; i < kids.Size(); i++)
-                {
-                    PdfDictionary? kid = kids.GetAsDictionary(i);
-                    if (kid is not null && visited.Add(kid))
-                    {
-                        stack.Push((kid, effectiveFt));
-                    }
-                }
-            }
-        }
-
-        return false;
+        return new SignatureUtil(pdf).GetSignatureNames().Count > 0;
     }
 }

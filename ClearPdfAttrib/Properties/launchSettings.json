@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "ClearPdfAttrib": {
+      "commandName": "Project"
+    },
+    "Test exe": {
+      "commandName": "Project",
+      "commandLineArgs": "\"C:\\SDKDevSign\\Training\\WPF Programns\\ClearPdfAttrib\\bin\\Release\\net10.0\\win-x64\\publish\\ClearPdfAttrib.SampleCache.staging_8c8235c196964080889d4a5e69a1c995\" --parallel 12 --progress-interval 1000 --retries 3"
+    }
+  }
+}

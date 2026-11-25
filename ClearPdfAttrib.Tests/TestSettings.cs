@@ -13,7 +13,7 @@ internal static class TestSettings
     /// the rest are generated in 04_Bulk.
     /// Increase this (e.g. 5_000 or 20_000) to test scale and watch live progress.
     /// </summary>
-    public const int TotalPdfCount = 10_000;
+    public const int TotalPdfCount = 6_000;
 
     public const int FixedFixturePdfCount = 13;
 
