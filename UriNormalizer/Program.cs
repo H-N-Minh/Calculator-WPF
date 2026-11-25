@@ -2,73 +2,139 @@
 // © SDK GmbH 
 // ------------------------------------------------------------------------------
 
+using System.Text.Json;
 using BdewUriNormalization;
 
-// Example: normalizing a URI before passing it to your hashing step
-string rawUri = "HTTPS://API.Example.COM:443/v1/./meters/../contracts/%7b123%7d?from=2026-01-01T00%3a00%3a00Z&filter=a+b%20c%2fd&tilde=%7e";
-string normalizedUri = UriNormalizer.Normalize(rawUri);
+string jsonPath = args.Length > 0 ? args[0] : "Tests.json";
 
-Console.WriteLine($"Raw:        {rawUri}");
-Console.WriteLine($"Normalized: {normalizedUri}");
-Console.WriteLine();
-
-// Next step (handled by your existing hashing code):
-// byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(normalizedUri));
-
-// Verification test vectors covering RFC 3986 Sections 6.2.2, 6.2.3, and 5.2.4
-var testCases = new (string Input, string Expected)[]
+if (!File.Exists(jsonPath))
 {
-    // RFC 3986 Section 6.2.2 example
-    ("eXAMPLE://a/./b/../b/%63/%7bfoo%7d", "example://a/b/c/%7Bfoo%7D"),
+    Console.WriteLine($"File not found: {Path.GetFullPath(jsonPath)}");
+    return 1;
+}
 
-    // RFC 3986 Section 6.2.3 examples
-    ("http://example.com", "http://example.com/"),
-    ("http://example.com/", "http://example.com/"),
-    ("http://example.com:/", "http://example.com/"),
-    ("http://example.com:80/", "http://example.com/"),
-    ("HTTP://www.EXAMPLE.com/", "http://www.example.com/"),
-    ("https://example.com:443", "https://example.com/"),
-    ("https://example.com:8443/api", "https://example.com:8443/api"),
-    ("http://example.com:443/", "http://example.com:443/"),
+using JsonDocument doc = JsonDocument.Parse(File.ReadAllText(jsonPath));
+JsonElement root = doc.RootElement;
 
-    // Empty query and fragment delimiters preserved (6.2.3)
-    ("http://example.com/?", "http://example.com/?"),
-    ("http://example.com#", "http://example.com/#"),
-
-    // Percent-encoding & host case normalization
-    ("http://EX%41MPLE.COM/%7euser/%2f/%42", "http://example.com/~user/%2F/B"),
-    ("http://example.com/a/%2e/b/%2e%2e/c", "http://example.com/a/c"),
-
-    // Dot-segment removal edge cases (5.2.4)
-    ("http://example.com/a/b/c/./../../g", "http://example.com/a/g"),
-    ("http://example.com/a/b/..", "http://example.com/a/"),
-    ("http://example.com/.", "http://example.com/"),
-    ("http://example.com/..", "http://example.com/"),
-    ("http://example.com/a/%2F../b", "http://example.com/a/%2F../b"),
-
-    // Userinfo case and delimiters preserved, IPv6 host lowercased
-    ("http://User:Pass@[2001:DB8::1]:80/test", "http://User:Pass@[2001:db8::1]/test"),
-    ("http://@example.com/", "http://@example.com/"),
-
-    // Query parameter order, duplicates, '+' and trailing slash preserved
-    ("https://api.test.de/v1/items/?b=2&a=1&b=3&q=a+b%20c", "https://api.test.de/v1/items/?b=2&a=1&b=3&q=a+b%20c"),
-};
-
+int total = 0;
 int passed = 0;
-foreach (var (input, expected) in testCases)
+int failed = 0;
+
+// 1. Run all positive test sections (any root array except invalid_inputs / source_references)
+foreach (JsonProperty prop in root.EnumerateObject())
 {
-    string actual = UriNormalizer.Normalize(input);
-    bool ok = actual == expected;
-    if (ok)
+    if (prop.Value.ValueKind != JsonValueKind.Array ||
+        prop.Name is "invalid_inputs" or "source_references")
     {
-        passed++;
+        continue;
     }
-    else
+
+    foreach (JsonElement sectionElement in prop.Value.EnumerateArray())
     {
-        Console.WriteLine($"FAIL: {input}");
-        Console.WriteLine($"  Expected: {expected}");
-        Console.WriteLine($"  Actual:   {actual}");
+        if (sectionElement.ValueKind != JsonValueKind.Object)
+        {
+            continue;
+        }
+
+        string sectionName = sectionElement.TryGetProperty("section", out var secProp)
+            ? secProp.GetString() ?? "(unnamed)"
+            : prop.Name;
+
+        // Find the array of test cases inside this section object
+        foreach (JsonProperty secField in sectionElement.EnumerateObject())
+        {
+            if (secField.Value.ValueKind != JsonValueKind.Array)
+            {
+                continue;
+            }
+
+            foreach (JsonElement test in secField.Value.EnumerateArray())
+            {
+                string id = test.GetProperty("id").GetString() ?? "";
+                string input = test.GetProperty("input").GetString() ?? "";
+                string expected = test.GetProperty("expected").GetString() ?? "";
+
+                total++;
+                try
+                {
+                    string actual = UriNormalizer.Normalize(input);
+                    if (actual == expected)
+                    {
+                        passed++;
+                    }
+                    else
+                    {
+                        failed++;
+                        Console.WriteLine($"[FAIL] {id} ({sectionName})");
+                        Console.WriteLine($"  Input:    {input}");
+                        Console.WriteLine($"  Expected: {expected}");
+                        Console.WriteLine($"  Actual:   {actual}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    failed++;
+                    Console.WriteLine($"[FAIL] {id} ({sectionName}) threw {ex.GetType().Name}: {ex.Message}");
+                    Console.WriteLine($"  Input: {input}");
+                }
+            }
+        }
     }
 }
 
-Console.WriteLine($"Passed {passed}/{testCases.Length} test vectors.");
+// 2. Run invalid_inputs
+if (root.TryGetProperty("invalid_inputs", out JsonElement invalidInputs) &&
+    invalidInputs.ValueKind == JsonValueKind.Array)
+{
+    foreach (JsonElement test in invalidInputs.EnumerateArray())
+    {
+        string id = test.GetProperty("id").GetString() ?? "";
+        string input = test.GetProperty("input").GetString() ?? "";
+        string expectedOutcome = test.GetProperty("expected_outcome").GetString() ?? "reject";
+
+        total++;
+        bool rejected = false;
+        string? actualOutput = null;
+
+        try
+        {
+            actualOutput = UriNormalizer.Normalize(input);
+        }
+        catch (FormatException)
+        {
+            rejected = true;
+        }
+        catch (ArgumentException)
+        {
+            rejected = true;
+        }
+
+        if (expectedOutcome == "reject")
+        {
+            if (rejected)
+            {
+                passed++;
+            }
+            else
+            {
+                failed++;
+                Console.WriteLine($"[FAIL] {id} (expected reject, but succeeded)");
+                Console.WriteLine($"  Input:  {input}");
+                Console.WriteLine($"  Output: {actualOutput}");
+            }
+        }
+        else if (expectedOutcome == "reject_or_unsupported")
+        {
+            // Passes either way; log if it was accepted as a general RFC 3986 URI
+            passed++;
+            if (!rejected)
+            {
+                Console.WriteLine($"[INFO] {id} ({expectedOutcome}): accepted as general URI -> {actualOutput}");
+            }
+        }
+    }
+}
+
+Console.WriteLine();
+Console.WriteLine($"Summary: {passed}/{total} passed, {failed} failed.");
+return failed == 0 ? 0 : 1;
