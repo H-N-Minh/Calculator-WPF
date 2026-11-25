@@ -1,0 +1,1064 @@
+{
+  "title": "BDEW API URI Normalization and Content-Signing Conformance Test Corpus",
+  "profile": "Absolute HTTP/HTTPS URIs. URI normalization follows RFC 3986 sections 6.2.2.1, 6.2.2.2, 6.2.2.3 and 6.2.3. Payload canonicalization follows RFC 8785. Signature-preimage integration assertions follow the supplied BDEW API specification, section 3.3, version 1.2 dated 2025-07-18.",
+  "assumptions": [
+    "The test target is a normalizer for absolute HTTP/HTTPS URIs, not a general URI-reference resolver.",
+    "The URI normalizer is used to derive the URI bytes to hash. The supplied BDEW excerpt does not explicitly require the actual HTTP request target to be rewritten to the normalized spelling.",
+    "RFC 3986 percent-encoding normalization is applied before dot-segment removal so that percent-encoded unreserved dots become complete dot segments where applicable.",
+    "Percent-encoded non-ASCII octets remain percent-encoded; this normalizer does not decode arbitrary bytes as UTF-8.",
+    "An empty query delimiter \u0027?\u0027 and an empty fragment delimiter \u0027#\u0027 are preserved because delimiter removal is not authorized by HTTP scheme-based normalization.",
+    "The URI test cases are normative assertions for the profile above; profile-specific policies are identified explicitly and should be reviewed against the API deployment contract."
+  ],
+  "recommended_order": [
+    "Run invalid URI rejection tests first.",
+    "Run scheme/host case normalization.",
+    "Run percent-encoding normalization.",
+    "Run path dot-segment normalization.",
+    "Run HTTP/HTTPS scheme-based normalization.",
+    "Run significant-component preservation tests.",
+    "Run authority and IP-literal tests.",
+    "Run equivalence-group and non-equivalence-pair tests.",
+    "Verify normalization idempotence for every successful test output.",
+    "Run RFC 8785 canonical JSON tests.",
+    "Run signature-preimage integration assertions."
+  ],
+  "source_references": [
+    {
+      "id": "RFC3986",
+      "title": "Uniform Resource Identifier (URI): Generic Syntax",
+      "sections": [
+        "5.2.4",
+        "6.2.2.1",
+        "6.2.2.2",
+        "6.2.2.3",
+        "6.2.3"
+      ],
+      "url": "https://www.rfc-editor.org/rfc/rfc3986"
+    },
+    {
+      "id": "RFC8785",
+      "title": "JSON Canonicalization Scheme (JCS)",
+      "sections": [
+        "3.2.2",
+        "3.2.3",
+        "3.2.4"
+      ],
+      "url": "https://www.rfc-editor.org/rfc/rfc8785"
+    },
+    {
+      "id": "RFC4648",
+      "title": "The Base16, Base32, and Base64 Data Encodings",
+      "sections": [
+        "4"
+      ],
+      "url": "https://www.rfc-editor.org/rfc/rfc4648"
+    },
+    {
+      "id": "RFC9440",
+      "title": "Client-Cert HTTP Header Field",
+      "sections": [
+        "2.1"
+      ],
+      "url": "https://www.rfc-editor.org/rfc/rfc9440"
+    },
+    {
+      "id": "TR03111",
+      "title": "Technical Guideline BSI TR-03111: Elliptic Curve Cryptography",
+      "sections": [
+        "5.2.2"
+      ],
+      "version": "2.1",
+      "url": "https://www.bsi.bund.de/SharedDocs/Downloads/EN/BSI/Publications/TechGuidelines/TR03111/BSI-TR-03111_V-2-1_pdf.pdf?__blob=publicationFile\u0026v=1"
+    },
+    {
+      "id": "TR03116-3",
+      "title": "Kryptographische Vorgaben f\u00FCr Projekte der Bundesregierung, Teil 3: Intelligente Messsysteme",
+      "sections": [
+        "8.2",
+        "9.1"
+      ],
+      "version": "2024-12-13",
+      "url": "https://www.bsi.bund.de/SharedDocs/Downloads/DE/BSI/Publikationen/TechnischeRichtlinien/TR03116/BSI-TR-03116-3.pdf"
+    },
+    {
+      "id": "BDEW-API-TRANSFER",
+      "title": "Regelungen zum \u00DCbertragungsweg f\u00FCr API-Webdienste",
+      "sections": [
+        "3.3 Inhaltsdatensicherungsebene"
+      ],
+      "version": "1.2",
+      "date": "2025-07-18",
+      "source": "User-provided specification excerpt"
+    }
+  ],
+  "scope": {
+    "primary_target": "A URI normalizer used to prepare the URI component for the BDEW signature hash.",
+    "also_included": [
+      "RFC 8785 JSON payload canonicalization tests because the payload is also hashed by the signature procedure.",
+      "Signature-preimage integration assertions for component ordering, optional initialTransactionId, and required header encoding."
+    ],
+    "out_of_scope": [
+      "Cryptographic key generation, certificate-chain validation, ECDSA implementation correctness, and full PKI policy validation.",
+      "HTTP request routing behavior and proxy/server path interpretation.",
+      "A complete implementation of RFC 3986 reference resolution; the URI profile here accepts absolute HTTP/HTTPS URIs only."
+    ]
+  },
+  "sections": [
+    {
+      "section": "01_scheme_and_host_case_normalization",
+      "description": "RFC 3986 6.2.2.1: lowercase the scheme and host. Do not lowercase userinfo, path, query, or fragment data. Percent-triplet hex digits are uppercase-normalized in all URI components.",
+      "tests": [
+        {
+          "id": "CASE-001",
+          "input": "HTTP://EXAMPLE.COM/a",
+          "expected": "http://example.com/a",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Lowercase uppercase HTTP scheme and DNS host."
+        },
+        {
+          "id": "CASE-002",
+          "input": "HtTp://ExAmPlE.CoM/a",
+          "expected": "http://example.com/a",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Lowercase mixed-case scheme and host."
+        },
+        {
+          "id": "CASE-003",
+          "input": "HTTPS://EXAMPLE.COM/Api/V1",
+          "expected": "https://example.com/Api/V1",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Lowercase scheme and host while preserving case-sensitive path."
+        },
+        {
+          "id": "CASE-004",
+          "input": "http://example.com/Path?Key=VaLuE#Frag",
+          "expected": "http://example.com/Path?Key=VaLuE#Frag",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Preserve case in path, query, and fragment."
+        },
+        {
+          "id": "CASE-005",
+          "input": "HTTP://[2001:DB8::ABCD]/a",
+          "expected": "http://[2001:db8::abcd]/a",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Lowercase hexadecimal letters in an IPv6 host literal."
+        },
+        {
+          "id": "CASE-006",
+          "input": "HTTPS://XN--BCHER-KVA.EXAMPLE/",
+          "expected": "https://xn--bcher-kva.example/",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Lowercase ASCII A-label host representation; do not perform IDNA conversion."
+        },
+        {
+          "id": "CASE-007",
+          "input": "http://example.COM./a",
+          "expected": "http://example.com./a",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Lowercase host but preserve its trailing dot."
+        },
+        {
+          "id": "CASE-008",
+          "input": "http://User:PaSS@EXAMPLE.COM/a",
+          "expected": "http://User:PaSS@example.com/a",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Preserve userinfo case while lowercasing the host."
+        },
+        {
+          "id": "CASE-009",
+          "input": "http://%45XAMPLE.com/",
+          "expected": "http://example.com/",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Decode an unreserved percent-encoded host octet, then apply host case normalization."
+        },
+        {
+          "id": "CASE-010",
+          "input": "HtTpS://MiXeD.ExAmPlE:8443/Case",
+          "expected": "https://mixed.example:8443/Case",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Normalize scheme and host only; preserve non-default port and path case."
+        }
+      ]
+    },
+    {
+      "section": "02_percent_encoding_normalization",
+      "description": "RFC 3986 6.2.2.2: decode percent-encoded octets only when they represent ASCII unreserved characters ALPHA / DIGIT / \u0027-\u0027 / \u0027.\u0027 / \u0027_\u0027 / \u0027~\u0027. Preserve percent-encoded reserved and other octets, with uppercase hexadecimal digits. Do not decode recursively.",
+      "tests": [
+        {
+          "id": "PCT-001",
+          "input": "http://example.com/%7euser",
+          "expected": "http://example.com/~user",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Decode percent-encoded tilde (unreserved)."
+        },
+        {
+          "id": "PCT-002",
+          "input": "http://example.com/%41%7a%30",
+          "expected": "http://example.com/Az0",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Decode percent-encoded ASCII letters and digits."
+        },
+        {
+          "id": "PCT-003",
+          "input": "http://example.com/a%2fb",
+          "expected": "http://example.com/a%2Fb",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Keep encoded slash reserved; uppercase its hex digits."
+        },
+        {
+          "id": "PCT-004",
+          "input": "http://example.com/a%3ab%3bc%3dd%26e%2bf",
+          "expected": "http://example.com/a%3Ab%3Bc%3Dd%26e%2Bf",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Keep encoded reserved characters encoded; uppercase percent-triplet hex."
+        },
+        {
+          "id": "PCT-005",
+          "input": "http://example.com/%c3%a4",
+          "expected": "http://example.com/%C3%A4",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Do not UTF-8-decode non-ASCII octets; uppercase percent-triplet hex."
+        },
+        {
+          "id": "PCT-006",
+          "input": "http://example.com/%25",
+          "expected": "http://example.com/%25",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Keep encoded percent sign encoded."
+        },
+        {
+          "id": "PCT-007",
+          "input": "http://example.com/%252e",
+          "expected": "http://example.com/%252e",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Do not recursively decode a percent sign produced or represented by another escape."
+        },
+        {
+          "id": "PCT-008",
+          "input": "http://example.com/?q=%7e%41%2f",
+          "expected": "http://example.com/?q=~A%2F",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Apply unreserved decoding and hex-case normalization in the query without changing its structure."
+        },
+        {
+          "id": "PCT-009",
+          "input": "http://example.com/#%7e%2f",
+          "expected": "http://example.com/#~%2F",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Apply percent-encoding normalization in the fragment; preserve reserved escapes."
+        },
+        {
+          "id": "PCT-010",
+          "input": "http://example.com/%00",
+          "expected": "http://example.com/%00",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Preserve a percent-encoded control octet; do not decode it."
+        },
+        {
+          "id": "PCT-011",
+          "input": "http://example.com/%ff",
+          "expected": "http://example.com/%FF",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Preserve a percent-encoded non-ASCII octet and uppercase its hex digits."
+        },
+        {
+          "id": "PCT-012",
+          "input": "http://example.com/a%2eb",
+          "expected": "http://example.com/a.b",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Decode an unreserved dot embedded within a non-dot path segment."
+        },
+        {
+          "id": "PCT-013",
+          "input": "http://example.com/?x=a%26b%3Dc",
+          "expected": "http://example.com/?x=a%26b%3Dc",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Do not decode encoded ampersand or equals signs into query delimiters."
+        },
+        {
+          "id": "PCT-014",
+          "input": "http://example.com/a%7Eb%5Fc%2Dd",
+          "expected": "http://example.com/a~b_c-d",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Decode all four unreserved punctuation characters shown."
+        }
+      ]
+    },
+    {
+      "section": "03_path_dot_segment_normalization",
+      "description": "RFC 3986 6.2.2.3 and 5.2.4: remove complete \u0027.\u0027 and \u0027..\u0027 path segments using the remove_dot_segments algorithm. The query and fragment must be separated before processing the path. Percent-encoded unreserved dots are decoded before dot-segment removal; encoded slashes remain encoded and do not create path separators.",
+      "tests": [
+        {
+          "id": "DOT-001",
+          "input": "http://example.com/a/./b",
+          "expected": "http://example.com/a/b",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Remove a complete current-directory segment."
+        },
+        {
+          "id": "DOT-002",
+          "input": "http://example.com/a/b/../c",
+          "expected": "http://example.com/a/c",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Remove a complete parent-directory segment and its preceding path segment."
+        },
+        {
+          "id": "DOT-003",
+          "input": "http://example.com/a/b/c/./../../g",
+          "expected": "http://example.com/a/g",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Apply the RFC 3986 5.2.4 multi-segment example pattern."
+        },
+        {
+          "id": "DOT-004",
+          "input": "http://example.com/a/b/..",
+          "expected": "http://example.com/a/",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Preserve the trailing slash implied by a terminal \u0027..\u0027 segment."
+        },
+        {
+          "id": "DOT-005",
+          "input": "http://example.com/a/b/.",
+          "expected": "http://example.com/a/b/",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Preserve the trailing slash implied by a terminal \u0027.\u0027 segment."
+        },
+        {
+          "id": "DOT-006",
+          "input": "http://example.com/./a",
+          "expected": "http://example.com/a",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Remove a leading current-directory segment."
+        },
+        {
+          "id": "DOT-007",
+          "input": "http://example.com/../a",
+          "expected": "http://example.com/a",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Remove a parent segment at the root without moving above the root."
+        },
+        {
+          "id": "DOT-008",
+          "input": "http://example.com/a/../../b",
+          "expected": "http://example.com/b",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Remove parent segments without producing a path above the authority root."
+        },
+        {
+          "id": "DOT-009",
+          "input": "http://example.com/%2e/a",
+          "expected": "http://example.com/a",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Decode %2e as an unreserved dot, then remove the resulting complete dot segment."
+        },
+        {
+          "id": "DOT-010",
+          "input": "http://example.com/a/%2E%2E/b",
+          "expected": "http://example.com/b",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Decode an encoded complete parent segment, then remove it."
+        },
+        {
+          "id": "DOT-011",
+          "input": "http://example.com/a/%2e./b",
+          "expected": "http://example.com/b",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Normalize mixed encoded/literal dots to a complete \u0027..\u0027 segment before removal."
+        },
+        {
+          "id": "DOT-012",
+          "input": "http://example.com/a/.../b",
+          "expected": "http://example.com/a/.../b",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Do not remove a segment containing three dots."
+        },
+        {
+          "id": "DOT-013",
+          "input": "http://example.com/a/..hidden/b",
+          "expected": "http://example.com/a/..hidden/b",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Do not remove a segment where \u0027..\u0027 is not the complete segment."
+        },
+        {
+          "id": "DOT-014",
+          "input": "http://example.com/a/file../b",
+          "expected": "http://example.com/a/file../b",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Do not treat dots inside an ordinary segment as dot segments."
+        },
+        {
+          "id": "DOT-015",
+          "input": "http://example.com/a%2Fb/x/../c",
+          "expected": "http://example.com/a%2Fb/c",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Do not decode %2F into a path separator; remove only the actual \u0027..\u0027 segment."
+        },
+        {
+          "id": "DOT-016",
+          "input": "http://example.com/%252e%252e/a",
+          "expected": "http://example.com/%252e%252e/a",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Do not recursively decode double-encoded dot segments."
+        },
+        {
+          "id": "DOT-017",
+          "input": "http://example.com/a?next=/../b\u0026v=./x",
+          "expected": "http://example.com/a?next=/../b\u0026v=./x",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Do not remove dot-like text in the query."
+        },
+        {
+          "id": "DOT-018",
+          "input": "http://example.com/a#section/../part",
+          "expected": "http://example.com/a#section/../part",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Do not apply path dot-segment removal to the fragment."
+        }
+      ]
+    },
+    {
+      "section": "04_http_https_scheme_based_normalization",
+      "description": "RFC 3986 6.2.3 for HTTP/HTTPS: lowercase scheme/host, normalize an empty path to \u0027/\u0027, and remove an empty port delimiter or the scheme\u0027s default port (80 for HTTP, 443 for HTTPS). Preserve non-default ports. Preserve empty query/fragment delimiters.",
+      "tests": [
+        {
+          "id": "HTTP-001",
+          "input": "http://example.com",
+          "expected": "http://example.com/",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Normalize an empty HTTP path to \u0027/\u0027."
+        },
+        {
+          "id": "HTTP-002",
+          "input": "https://example.com",
+          "expected": "https://example.com/",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Normalize an empty HTTPS path to \u0027/\u0027."
+        },
+        {
+          "id": "HTTP-003",
+          "input": "http://example.com/",
+          "expected": "http://example.com/",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Keep the already-normalized HTTP root path."
+        },
+        {
+          "id": "HTTP-004",
+          "input": "http://example.com:/",
+          "expected": "http://example.com/",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Remove an explicitly empty HTTP port and its colon."
+        },
+        {
+          "id": "HTTP-005",
+          "input": "http://example.com:80/",
+          "expected": "http://example.com/",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Remove the HTTP default port 80."
+        },
+        {
+          "id": "HTTP-006",
+          "input": "https://example.com:443/",
+          "expected": "https://example.com/",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Remove the HTTPS default port 443."
+        },
+        {
+          "id": "HTTP-007",
+          "input": "http://example.com:8080",
+          "expected": "http://example.com:8080/",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Preserve a non-default HTTP port and normalize the empty path."
+        },
+        {
+          "id": "HTTP-008",
+          "input": "https://example.com:8443/a",
+          "expected": "https://example.com:8443/a",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Preserve a non-default HTTPS port."
+        },
+        {
+          "id": "HTTP-009",
+          "input": "http://example.com:443/",
+          "expected": "http://example.com:443/",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Do not remove port 443 from HTTP; it is not HTTP\u0027s default port."
+        },
+        {
+          "id": "HTTP-010",
+          "input": "https://example.com:80/",
+          "expected": "https://example.com:80/",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Do not remove port 80 from HTTPS; it is not HTTPS\u0027s default port."
+        },
+        {
+          "id": "HTTP-011",
+          "input": "http://example.com?x=1",
+          "expected": "http://example.com/?x=1",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Normalize empty path while preserving the query."
+        },
+        {
+          "id": "HTTP-012",
+          "input": "https://example.com?",
+          "expected": "https://example.com/?",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Normalize empty path but preserve the present-empty query delimiter."
+        },
+        {
+          "id": "HTTP-013",
+          "input": "http://example.com/#",
+          "expected": "http://example.com/#",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Preserve the present-empty fragment delimiter."
+        },
+        {
+          "id": "HTTP-014",
+          "input": "http://example.com:/?x=1",
+          "expected": "http://example.com/?x=1",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Remove empty port, normalize empty path, and preserve query."
+        },
+        {
+          "id": "HTTP-015",
+          "input": "http://[2001:DB8::1]:80",
+          "expected": "http://[2001:db8::1]/",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Normalize IPv6 host case, remove default port, and add root path."
+        },
+        {
+          "id": "HTTP-016",
+          "input": "https://[2001:DB8::1]:443/a",
+          "expected": "https://[2001:db8::1]/a",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Normalize IPv6 host case and remove HTTPS default port."
+        },
+        {
+          "id": "HTTP-017",
+          "input": "http://example.com:0/",
+          "expected": "http://example.com:0/",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Preserve port 0; it is not the default HTTP port."
+        }
+      ]
+    },
+    {
+      "section": "05_significant_components_that_must_be_preserved",
+      "description": "RFC 3986 treats generic components as case-sensitive except where specifically stated. Do not reorder or reinterpret query parameters, collapse repeated slashes, decode reserved escapes, remove empty query/fragment delimiters, or perform HTML form decoding. The fragment is not subject to HTTP scheme-based normalization; this corpus preserves it rather than silently discarding it.",
+      "tests": [
+        {
+          "id": "KEEP-001",
+          "input": "http://example.com/A",
+          "expected": "http://example.com/A",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Preserve path case."
+        },
+        {
+          "id": "KEEP-002",
+          "input": "http://example.com/a?Key=Value",
+          "expected": "http://example.com/a?Key=Value",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Preserve query key/value case."
+        },
+        {
+          "id": "KEEP-003",
+          "input": "http://example.com/a?b=2\u0026a=1",
+          "expected": "http://example.com/a?b=2\u0026a=1",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Do not sort query parameters."
+        },
+        {
+          "id": "KEEP-004",
+          "input": "http://example.com/a?id=1\u0026id=2",
+          "expected": "http://example.com/a?id=1\u0026id=2",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Preserve duplicate query parameters and their order."
+        },
+        {
+          "id": "KEEP-005",
+          "input": "http://example.com/a?flag\u0026empty=",
+          "expected": "http://example.com/a?flag\u0026empty=",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Preserve flag-style parameters and empty values."
+        },
+        {
+          "id": "KEEP-006",
+          "input": "http://example.com/a?q=a\u002Bb",
+          "expected": "http://example.com/a?q=a\u002Bb",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Do not convert \u0027\u002B\u0027 to a space."
+        },
+        {
+          "id": "KEEP-007",
+          "input": "http://example.com/a?x=1\u0026\u0026y=2",
+          "expected": "http://example.com/a?x=1\u0026\u0026y=2",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Preserve empty query fields and repeated separators."
+        },
+        {
+          "id": "KEEP-008",
+          "input": "http://example.com/a?x=1\u0026",
+          "expected": "http://example.com/a?x=1\u0026",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Preserve a trailing query separator."
+        },
+        {
+          "id": "KEEP-009",
+          "input": "http://example.com/a?",
+          "expected": "http://example.com/a?",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Preserve the empty query delimiter; it is distinct from no query."
+        },
+        {
+          "id": "KEEP-010",
+          "input": "http://example.com/a",
+          "expected": "http://example.com/a",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Keep no query delimiter when none is present."
+        },
+        {
+          "id": "KEEP-011",
+          "input": "http://example.com/a#",
+          "expected": "http://example.com/a#",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Preserve an empty fragment delimiter."
+        },
+        {
+          "id": "KEEP-012",
+          "input": "http://example.com/a",
+          "expected": "http://example.com/a",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Keep no fragment delimiter when none is present."
+        },
+        {
+          "id": "KEEP-013",
+          "input": "http://example.com/a#Section",
+          "expected": "http://example.com/a#Section",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Preserve fragment text and case."
+        },
+        {
+          "id": "KEEP-014",
+          "input": "http://example.com/a//b",
+          "expected": "http://example.com/a//b",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Do not collapse repeated path slashes."
+        },
+        {
+          "id": "KEEP-015",
+          "input": "http://example.com/a/b/",
+          "expected": "http://example.com/a/b/",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Preserve a trailing path slash."
+        },
+        {
+          "id": "KEEP-016",
+          "input": "http://example.com/a%2Fb",
+          "expected": "http://example.com/a%2Fb",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Do not turn an encoded reserved slash into a path separator."
+        },
+        {
+          "id": "KEEP-017",
+          "input": "http://example.com/a%3Fb",
+          "expected": "http://example.com/a%3Fb",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Do not turn an encoded question mark into a query delimiter."
+        },
+        {
+          "id": "KEEP-018",
+          "input": "http://example.com/a;b=1",
+          "expected": "http://example.com/a;b=1",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Preserve path parameters and semicolon delimiters."
+        },
+        {
+          "id": "KEEP-019",
+          "input": "http://example.com/a?x=%26%3D",
+          "expected": "http://example.com/a?x=%26%3D",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Keep encoded query delimiters encoded."
+        },
+        {
+          "id": "KEEP-020",
+          "input": "http://example.com/a?x=/../b",
+          "expected": "http://example.com/a?x=/../b",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Do not apply path processing to slash/dot sequences in a query."
+        },
+        {
+          "id": "KEEP-021",
+          "input": "http://example.com/a?x=1#Frag",
+          "expected": "http://example.com/a?x=1#Frag",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Preserve query and fragment exactly apart from percent-encoding normalization."
+        },
+        {
+          "id": "KEEP-022",
+          "input": "http://example.com/a#Frag%7e%2f",
+          "expected": "http://example.com/a#Frag~%2F",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Normalize percent escapes in fragment without lowercasing fragment text."
+        }
+      ]
+    },
+    {
+      "section": "06_authority_userinfo_and_ip_literals",
+      "description": "Preserve authority subcomponents except for normalization explicitly allowed by RFC 3986. Lowercase the host, retain userinfo case and delimiters, lowercase IPv6 hex digits, and do not invent alternate IPv6 compression or address formatting.",
+      "tests": [
+        {
+          "id": "AUTH-001",
+          "input": "http://USER:Pass@EXAMPLE.com:8080/a",
+          "expected": "http://USER:Pass@example.com:8080/a",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Preserve userinfo and non-default port; lowercase host."
+        },
+        {
+          "id": "AUTH-002",
+          "input": "http://@EXAMPLE.com/a",
+          "expected": "http://@example.com/a",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Do not remove an empty userinfo component or its \u0027@\u0027 delimiter."
+        },
+        {
+          "id": "AUTH-003",
+          "input": "http://user%7ename@example.com/a",
+          "expected": "http://user~name@example.com/a",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Normalize an unreserved percent-encoded character in userinfo."
+        },
+        {
+          "id": "AUTH-004",
+          "input": "http://[2001:0DB8:0000:0000:0000:0000:0000:0001]/",
+          "expected": "http://[2001:0db8:0000:0000:0000:0000:0000:0001]/",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Lowercase IPv6 hex digits but do not compress or otherwise reformat the address."
+        },
+        {
+          "id": "AUTH-005",
+          "input": "http://[2001:DB8::A]:8080/",
+          "expected": "http://[2001:db8::a]:8080/",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Lowercase IPv6 literal and preserve a non-default port."
+        },
+        {
+          "id": "AUTH-006",
+          "input": "http://example.com:8080/",
+          "expected": "http://example.com:8080/",
+          "classification": "must_normalize",
+          "rule": "RFC3986",
+          "purpose": "Preserve the port string when it is not the default."
+        }
+      ]
+    }
+  ],
+  "invalid_inputs": [
+    {
+      "id": "INVALID-001",
+      "input": "http://",
+      "expected_outcome": "reject",
+      "reason": "HTTP URI has no host."
+    },
+    {
+      "id": "INVALID-002",
+      "input": "https:///path",
+      "expected_outcome": "reject",
+      "reason": "HTTPS URI has an empty host component."
+    },
+    {
+      "id": "INVALID-003",
+      "input": "/relative/path",
+      "expected_outcome": "reject",
+      "reason": "The configured profile accepts absolute HTTP/HTTPS URIs only."
+    },
+    {
+      "id": "INVALID-004",
+      "input": "//example.com/path",
+      "expected_outcome": "reject",
+      "reason": "Network-path reference has no scheme and is not an absolute URI."
+    },
+    {
+      "id": "INVALID-005",
+      "input": "ftp://example.com/path",
+      "expected_outcome": "reject",
+      "reason": "The configured profile accepts HTTP and HTTPS only."
+    },
+    {
+      "id": "INVALID-006",
+      "input": "http://example.com/%",
+      "expected_outcome": "reject",
+      "reason": "Malformed percent-encoding triplet."
+    },
+    {
+      "id": "INVALID-007",
+      "input": "http://example.com/%2",
+      "expected_outcome": "reject",
+      "reason": "Incomplete percent-encoding triplet."
+    },
+    {
+      "id": "INVALID-008",
+      "input": "http://example.com/%GG",
+      "expected_outcome": "reject",
+      "reason": "Non-hexadecimal characters in percent-encoding triplet."
+    },
+    {
+      "id": "INVALID-009",
+      "input": "http://example.com/a b",
+      "expected_outcome": "reject",
+      "reason": "Unescaped space is not permitted in an RFC 3986 URI."
+    },
+    {
+      "id": "INVALID-010",
+      "input": "http://example.com/a\\b",
+      "expected_outcome": "reject",
+      "reason": "Backslash is not an RFC 3986 URI path character."
+    },
+    {
+      "id": "INVALID-011",
+      "input": "http://example.com/a|b",
+      "expected_outcome": "reject",
+      "reason": "Vertical bar is not permitted as an unescaped URI character."
+    },
+    {
+      "id": "INVALID-012",
+      "input": "http://example.com:abc/a",
+      "expected_outcome": "reject",
+      "reason": "Port component contains non-digit characters."
+    },
+    {
+      "id": "INVALID-013",
+      "input": "http://[2001:db8::1/a",
+      "expected_outcome": "reject",
+      "reason": "Malformed IPv6 literal; closing bracket is missing."
+    },
+    {
+      "id": "INVALID-014",
+      "input": "http://2001:db8::1/a",
+      "expected_outcome": "reject",
+      "reason": "IPv6 literal must be enclosed in square brackets in the URI authority."
+    },
+    {
+      "id": "INVALID-015",
+      "input": "http://:8080/a",
+      "expected_outcome": "reject",
+      "reason": "HTTP authority has no host."
+    },
+    {
+      "id": "INVALID-016",
+      "input": "http://example.com/\u00E4",
+      "expected_outcome": "reject",
+      "reason": "This strict URI profile rejects raw non-ASCII characters; encode UTF-8 octets as percent-encoded bytes or apply a separately specified IRI-to-URI conversion."
+    },
+    {
+      "id": "INVALID-017",
+      "input": "http://example.com/{x}",
+      "expected_outcome": "reject",
+      "reason": "Curly braces are not permitted as unescaped RFC 3986 URI characters."
+    },
+    {
+      "id": "INVALID-018",
+      "input": "http://example.com/\npath",
+      "expected_outcome": "reject",
+      "reason": "Control characters are not permitted in a URI."
+    }
+  ],
+  "equivalence_groups": [
+    {
+      "id": "EQ-001",
+      "expected": null,
+      "inputs": [
+        "HTTP://EXAMPLE.COM/a",
+        "http://example.com/a"
+      ],
+      "purpose": null
+    },
+    {
+      "id": "EQ-002",
+      "expected": null,
+      "inputs": [
+        "http://example.com/%7euser",
+        "http://example.com/~user"
+      ],
+      "purpose": null
+    },
+    {
+      "id": "EQ-003",
+      "expected": null,
+      "inputs": [
+        "http://example.com/a/b/../c",
+        "http://example.com/a/c"
+      ],
+      "purpose": null
+    },
+    {
+      "id": "EQ-004",
+      "expected": null,
+      "inputs": [
+        "http://example.com",
+        "http://example.com/",
+        "http://example.com:/",
+        "http://example.com:80/"
+      ],
+      "purpose": null
+    },
+    {
+      "id": "EQ-005",
+      "expected": null,
+      "inputs": [
+        "https://example.com",
+        "https://example.com/",
+        "https://example.com:443/"
+      ],
+      "purpose": null
+    }
+  ],
+  "distinct_pairs": [
+    {
+      "id": "NEQ-001",
+      "a": "http://example.com/A",
+      "b": "http://example.com/a",
+      "reason": "Path is case-sensitive."
+    },
+    {
+      "id": "NEQ-002",
+      "a": "http://example.com/a?b=2\u0026a=1",
+      "b": "http://example.com/a?a=1\u0026b=2",
+      "reason": "Query parameter order is preserved; query sorting is not authorized."
+    },
+    {
+      "id": "NEQ-003",
+      "a": "http://example.com/a?id=1\u0026id=2",
+      "b": "http://example.com/a?id=2\u0026id=1",
+      "reason": "Duplicate query parameter order is preserved."
+    },
+    {
+      "id": "NEQ-004",
+      "a": "http://example.com/a",
+      "b": "http://example.com/a?",
+      "reason": "A present-empty query delimiter is significant."
+    },
+    {
+      "id": "NEQ-005",
+      "a": "http://example.com/a",
+      "b": "http://example.com/a#",
+      "reason": "A present-empty fragment delimiter is significant under RFC 3986."
+    },
+    {
+      "id": "NEQ-006",
+      "a": "http://example.com/a/b",
+      "b": "http://example.com/a%2Fb",
+      "reason": "Encoded reserved slash is not decoded into a path separator."
+    },
+    {
+      "id": "NEQ-007",
+      "a": "http://example.com:8080/a",
+      "b": "http://example.com:8081/a",
+      "reason": "Different non-default ports are preserved."
+    },
+    {
+      "id": "NEQ-008",
+      "a": "http://example.com/a//b",
+      "b": "http://example.com/a/b",
+      "reason": "Repeated path slashes are not collapsed."
+    },
+    {
+      "id": "NEQ-009",
+      "a": "http://example.com/a?x=1#One",
+      "b": "http://example.com/a?x=1#one",
+      "reason": "Fragment text is case-sensitive."
+    },
+    {
+      "id": "NEQ-010",
+      "a": "http://example.com/a?x=a\u002Bb",
+      "b": "http://example.com/a?x=a%20b",
+      "reason": "The plus sign is not form-decoded to a space; these query values are not normalized to the same value."
+    }
+  ],
+  "policy_tests": [],
+  "properties": []
+}

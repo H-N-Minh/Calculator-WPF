@@ -8,7 +8,10 @@ using BdewUriNormalization;
 
 string[] jsonPaths = args.Length > 0
     ? args
-    : ["unified/Tests.json", "unified/gpt.json", "unified/Gem.json", "unified/claud.json"];
+    : ["C:\\SDKDevSign\\Training\\WPF Programns\\UriNormalizer\\unified\\Tests.json"];
+        //"C:\\SDKDevSign\\Training\\WPF Programns\\UriNormalizer\\unified\\gpt.json",
+        //"C:\\SDKDevSign\\Training\\WPF Programns\\UriNormalizer\\unified\\Gem.json",
+        //"C:\\SDKDevSign\\Training\\WPF Programns\\UriNormalizer\\unified\\claud.json"];
 
 var jsonOptions = new JsonSerializerOptions
 {
