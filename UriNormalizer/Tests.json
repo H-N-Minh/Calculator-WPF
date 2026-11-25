@@ -1,0 +1,919 @@
+{
+  "title": "RFC 3986 URI Normalization Test Corpus",
+  "profile": "Absolute HTTP/HTTPS URIs. RFC 3986 sections 6.2.2.1, 6.2.2.2, 6.2.2.3, and 6.2.3.",
+  "assumptions": [
+    "The URI is an absolute HTTP or HTTPS URI with an authority and host.",
+    "For HTTP/HTTPS, omit port 80 for http and port 443 for https; also omit an explicitly empty port component.",
+    "Normalize an empty path to '/' (assumes the URI is not being used as the target of an OPTIONS request).",
+    "Percent-normalization decodes only ASCII unreserved octets (letters, digits, hyphen, period, underscore, tilde) and uppercases hex digits for all retained percent triplets.",
+    "Percent-normalization is one pass only; do not recursively decode newly formed percent triplets.",
+    "Dot-segment removal runs after percent-normalization, so %2E and %2E%2E can become complete '.' and '..' segments.",
+    "Query order, duplicate query parameters, plus signs, path case, query case, and trailing/repeated slashes are preserved.",
+    "The fragment tests assume fragments are included in the string being normalized. HTTP request-targets normally exclude fragments; confirm the client's signing definition before using those cases.",
+    "Raw non-ASCII characters and IRI-to-URI conversion are outside this corpus; percent-encode UTF-8 octets before normalization."
+  ],
+  "recommended_order": [
+    "Parse the input and preserve the exact component boundaries and delimiter presence.",
+    "Lowercase the scheme and the host (not user-info, path, query, or fragment).",
+    "Normalize percent-encoding in applicable components: decode unreserved octets and uppercase hex in retained triplets.",
+    "Remove dot segments from the normalized path using RFC 3986 section 5.2.4.",
+    "Apply HTTP/HTTPS scheme rules: remove empty/default port and replace an empty path with '/'.",
+    "Serialize without applying any additional decoding, escaping, sorting, or slash collapsing."
+  ],
+  "sections": [
+    {
+      "section": "01_case_normalization",
+      "description": "RFC 3986 6.2.2.1: lowercase the scheme and host; uppercase hexadecimal digits in percent triplets. Other components remain case-sensitive.",
+      "tests": [
+        {
+          "id": "CASE-001",
+          "input": "HTTP://EXAMPLE.COM/a",
+          "expected": "http://example.com/a",
+          "purpose": "Lowercase scheme and DNS host."
+        },
+        {
+          "id": "CASE-002",
+          "input": "HtTp://ExAmPlE.CoM/a",
+          "expected": "http://example.com/a",
+          "purpose": "Mixed-case scheme and host."
+        },
+        {
+          "id": "CASE-003",
+          "input": "HTTPS://WWW.EXAMPLE.COM/Path",
+          "expected": "https://www.example.com/Path",
+          "purpose": "Path case is preserved."
+        },
+        {
+          "id": "CASE-004",
+          "input": "http://example.com/AbC",
+          "expected": "http://example.com/AbC",
+          "purpose": "Path case is preserved."
+        },
+        {
+          "id": "CASE-005",
+          "input": "http://example.com/?Name=John",
+          "expected": "http://example.com/?Name=John",
+          "purpose": "Query key and value case are preserved."
+        },
+        {
+          "id": "CASE-006",
+          "input": "http://User:PaSs@EXAMPLE.COM/a",
+          "expected": "http://User:PaSs@example.com/a",
+          "purpose": "User-info case is preserved; host is lowercased."
+        },
+        {
+          "id": "CASE-007",
+          "input": "http://example.com/%2f%3a%3f%23",
+          "expected": "http://example.com/%2F%3A%3F%23",
+          "purpose": "Hex digits in reserved percent-encodings are uppercased."
+        },
+        {
+          "id": "CASE-008",
+          "input": "https://[2001:DB8::A]/a",
+          "expected": "https://[2001:db8::a]/a",
+          "purpose": "Hexadecimal characters in the IPv6 host literal are lowercased; no address compression is performed."
+        },
+        {
+          "id": "CASE-009",
+          "input": "http://example.com/MiXeD?q=MiXeD#MiXeD",
+          "expected": "http://example.com/MiXeD?q=MiXeD#MiXeD",
+          "purpose": "Case-sensitive path, query, and fragment are unchanged."
+        },
+        {
+          "id": "CASE-010",
+          "input": "HTTP://EXAMPLE.COM/%7eA%2fB",
+          "expected": "http://example.com/~A%2FB",
+          "purpose": "Host/scheme case and percent-encoding normalization both apply."
+        }
+      ]
+    },
+    {
+      "section": "02_percent_encoding_normalization",
+      "description": "RFC 3986 6.2.2.2: decode percent-encoded octets for ASCII unreserved characters (ALPHA / DIGIT / '-' / '.' / '_' / '~'). Keep encoded reserved characters encoded, but uppercase their hex digits.",
+      "tests": [
+        {
+          "id": "PCT-001",
+          "input": "http://example.com/%7e",
+          "expected": "http://example.com/~",
+          "purpose": "Decode %7E (unreserved tilde)."
+        },
+        {
+          "id": "PCT-002",
+          "input": "http://example.com/%41",
+          "expected": "http://example.com/A",
+          "purpose": "Decode %41 (unreserved letter A)."
+        },
+        {
+          "id": "PCT-003",
+          "input": "http://example.com/%7a",
+          "expected": "http://example.com/z",
+          "purpose": "Decode lowercase-hex %7a."
+        },
+        {
+          "id": "PCT-004",
+          "input": "http://example.com/%30",
+          "expected": "http://example.com/0",
+          "purpose": "Decode an encoded digit."
+        },
+        {
+          "id": "PCT-005",
+          "input": "http://example.com/%2d%2e%5f%7e",
+          "expected": "http://example.com/-._~",
+          "purpose": "Decode all four punctuation unreserved characters."
+        },
+        {
+          "id": "PCT-006",
+          "input": "http://example.com/%2f",
+          "expected": "http://example.com/%2F",
+          "purpose": "Do not decode encoded slash because it is reserved."
+        },
+        {
+          "id": "PCT-007",
+          "input": "http://example.com/%3a",
+          "expected": "http://example.com/%3A",
+          "purpose": "Do not decode encoded colon."
+        },
+        {
+          "id": "PCT-008",
+          "input": "http://example.com/%3f",
+          "expected": "http://example.com/%3F",
+          "purpose": "Do not decode encoded question mark."
+        },
+        {
+          "id": "PCT-009",
+          "input": "http://example.com/%23",
+          "expected": "http://example.com/%23",
+          "purpose": "Do not decode encoded hash; it must not become a fragment delimiter."
+        },
+        {
+          "id": "PCT-010",
+          "input": "http://example.com/%26%3d",
+          "expected": "http://example.com/%26%3D",
+          "purpose": "Keep encoded ampersand and equals sign reserved."
+        },
+        {
+          "id": "PCT-011",
+          "input": "http://example.com/%40%3b%2c",
+          "expected": "http://example.com/%40%3B%2C",
+          "purpose": "Keep encoded @, semicolon, and comma reserved."
+        },
+        {
+          "id": "PCT-012",
+          "input": "http://example.com/%5b%5d",
+          "expected": "http://example.com/%5B%5D",
+          "purpose": "Keep encoded square brackets reserved."
+        },
+        {
+          "id": "PCT-013",
+          "input": "http://example.com/%21%24%27%28%29%2a%2b",
+          "expected": "http://example.com/%21%24%27%28%29%2A%2B",
+          "purpose": "Keep encoded sub-delimiters reserved."
+        },
+        {
+          "id": "PCT-014",
+          "input": "http://example.com/a%2fb%3fc",
+          "expected": "http://example.com/a%2Fb%3Fc",
+          "purpose": "Encoded delimiters stay encoded within path segment."
+        },
+        {
+          "id": "PCT-015",
+          "input": "http://example.com/?q=%41%2f%7e",
+          "expected": "http://example.com/?q=A%2F~",
+          "purpose": "Apply percent normalization to query values too."
+        },
+        {
+          "id": "PCT-016",
+          "input": "http://example.com/?%6eame=%4aohn",
+          "expected": "http://example.com/?name=John",
+          "purpose": "Decode unreserved escapes in query names and values."
+        },
+        {
+          "id": "PCT-017",
+          "input": "http://example.com/%252F",
+          "expected": "http://example.com/%252F",
+          "purpose": "Do not recursively decode: %25 remains encoded, so %252F stays %252F."
+        },
+        {
+          "id": "PCT-018",
+          "input": "http://example.com/%25%32%46",
+          "expected": "http://example.com/%252F",
+          "purpose": "Decode %32 and %46, but do not recursively decode newly formed %2F."
+        },
+        {
+          "id": "PCT-019",
+          "input": "http://example.com/%C3%A4",
+          "expected": "http://example.com/%C3%A4",
+          "purpose": "Keep UTF-8 octets encoded; only unreserved ASCII octets are decoded."
+        },
+        {
+          "id": "PCT-020",
+          "input": "http://example.com/%e2%82%ac",
+          "expected": "http://example.com/%E2%82%AC",
+          "purpose": "Uppercase hex in each UTF-8 percent triplet; do not decode them."
+        },
+        {
+          "id": "PCT-021",
+          "input": "http://example.com/user%3Aname",
+          "expected": "http://example.com/user%3Aname",
+          "purpose": "Encoded reserved colon remains encoded in the path."
+        },
+        {
+          "id": "PCT-022",
+          "input": "http://example.com/?q=a+b",
+          "expected": "http://example.com/?q=a+b",
+          "purpose": "A literal plus sign is not converted to a space."
+        },
+        {
+          "id": "PCT-023",
+          "input": "http://example.com/?q=a%2Bb",
+          "expected": "http://example.com/?q=a%2Bb",
+          "purpose": "Encoded plus remains encoded; do not apply form-url-encoding rules."
+        },
+        {
+          "id": "PCT-024",
+          "input": "http://example.com/a%2Eb",
+          "expected": "http://example.com/a.b",
+          "purpose": "Decode an unreserved dot embedded inside a larger segment; it is not a dot segment."
+        }
+      ]
+    },
+    {
+      "section": "03_path_segment_normalization",
+      "description": "RFC 3986 6.2.2.3: run the Section 5.2.4 remove-dot-segments algorithm on the path. Only complete '.' and '..' path segments are special. Preserve ordinary segments, repeated slashes, and meaningful trailing slashes.",
+      "tests": [
+        {
+          "id": "PATH-001",
+          "input": "http://example.com/a/./b",
+          "expected": "http://example.com/a/b",
+          "purpose": "Remove a complete '.' segment."
+        },
+        {
+          "id": "PATH-002",
+          "input": "http://example.com/a/b/../c",
+          "expected": "http://example.com/a/c",
+          "purpose": "Remove a complete '..' segment and the preceding segment."
+        },
+        {
+          "id": "PATH-003",
+          "input": "http://example.com/a/b/../../c",
+          "expected": "http://example.com/c",
+          "purpose": "Remove two parent segments."
+        },
+        {
+          "id": "PATH-004",
+          "input": "http://example.com/a/b/../../../c",
+          "expected": "http://example.com/c",
+          "purpose": "Do not move above the root."
+        },
+        {
+          "id": "PATH-005",
+          "input": "http://example.com/./a",
+          "expected": "http://example.com/a",
+          "purpose": "Remove leading '/./'."
+        },
+        {
+          "id": "PATH-006",
+          "input": "http://example.com/../a",
+          "expected": "http://example.com/a",
+          "purpose": "Remove leading '/../' above root."
+        },
+        {
+          "id": "PATH-007",
+          "input": "http://example.com/a/.",
+          "expected": "http://example.com/a/",
+          "purpose": "A terminal '/.' normalizes to a trailing slash."
+        },
+        {
+          "id": "PATH-008",
+          "input": "http://example.com/a/b/..",
+          "expected": "http://example.com/a/",
+          "purpose": "A terminal '/..' removes the preceding segment and leaves the slash."
+        },
+        {
+          "id": "PATH-009",
+          "input": "http://example.com/a/b/../",
+          "expected": "http://example.com/a/",
+          "purpose": "Preserve resulting trailing slash."
+        },
+        {
+          "id": "PATH-010",
+          "input": "http://example.com/a/../",
+          "expected": "http://example.com/",
+          "purpose": "Parent segment returns to root."
+        },
+        {
+          "id": "PATH-011",
+          "input": "http://example.com/./",
+          "expected": "http://example.com/",
+          "purpose": "Normalize '/./' to root."
+        },
+        {
+          "id": "PATH-012",
+          "input": "http://example.com/../",
+          "expected": "http://example.com/",
+          "purpose": "Normalize '/../' to root."
+        },
+        {
+          "id": "PATH-013",
+          "input": "http://example.com/a//b/../c",
+          "expected": "http://example.com/a//c",
+          "purpose": "Repeated slashes are preserved; remove only the dot segment."
+        },
+        {
+          "id": "PATH-014",
+          "input": "http://example.com//a///b",
+          "expected": "http://example.com//a///b",
+          "purpose": "Repeated slashes without dot segments are unchanged."
+        },
+        {
+          "id": "PATH-015",
+          "input": "http://example.com/a/.../b",
+          "expected": "http://example.com/a/.../b",
+          "purpose": "'...' is an ordinary segment, not '.'."
+        },
+        {
+          "id": "PATH-016",
+          "input": "http://example.com/a/....",
+          "expected": "http://example.com/a/....",
+          "purpose": "'....' is an ordinary segment, not '..'."
+        },
+        {
+          "id": "PATH-017",
+          "input": "http://example.com/a/.hidden/..backup",
+          "expected": "http://example.com/a/.hidden/..backup",
+          "purpose": "Dot characters inside a segment do not make it a dot segment."
+        },
+        {
+          "id": "PATH-018",
+          "input": "http://example.com/a/././b/./",
+          "expected": "http://example.com/a/b/",
+          "purpose": "Remove multiple complete '.' segments."
+        },
+        {
+          "id": "PATH-019",
+          "input": "http://example.com/a/b/../../",
+          "expected": "http://example.com/",
+          "purpose": "Remove all path segments up to root."
+        },
+        {
+          "id": "PATH-020",
+          "input": "http://example.com/a/b/c/./../../g",
+          "expected": "http://example.com/a/g",
+          "purpose": "RFC 3986-style nested dot-segment case."
+        },
+        {
+          "id": "PATH-021",
+          "input": "http://example.com/mid/content=5/../6",
+          "expected": "http://example.com/mid/6",
+          "purpose": "Remove parent segment after an ordinary segment containing '='."
+        },
+        {
+          "id": "PATH-022",
+          "input": "http://example.com/a%2Fb/../c",
+          "expected": "http://example.com/c",
+          "purpose": "Encoded slash stays within a segment during parsing; remove the preceding complete segment."
+        },
+        {
+          "id": "PATH-023",
+          "input": "http://example.com/a%2Fb/c",
+          "expected": "http://example.com/a%2Fb/c",
+          "purpose": "An encoded slash is not a path separator."
+        },
+        {
+          "id": "PATH-024",
+          "input": "http://example.com/a/%2E/b",
+          "expected": "http://example.com/a/b",
+          "purpose": "Decode %2E to '.' before dot-segment removal."
+        },
+        {
+          "id": "PATH-025",
+          "input": "http://example.com/a/%2e%2e/b",
+          "expected": "http://example.com/b",
+          "purpose": "Decode %2e%2e to '..' before dot-segment removal."
+        },
+        {
+          "id": "PATH-026",
+          "input": "http://example.com/%2E%2E/b",
+          "expected": "http://example.com/b",
+          "purpose": "Encoded leading '..' is normalized before dot removal."
+        },
+        {
+          "id": "PATH-027",
+          "input": "http://example.com/a/%2e/",
+          "expected": "http://example.com/a/",
+          "purpose": "Encoded dot segment with trailing slash."
+        },
+        {
+          "id": "PATH-028",
+          "input": "http://example.com/a/%2E%2E/",
+          "expected": "http://example.com/",
+          "purpose": "Encoded parent segment with trailing slash."
+        }
+      ]
+    },
+    {
+      "section": "04_scheme_based_http_https",
+      "description": "RFC 3986 6.2.3 for HTTP/HTTPS: omit the scheme's default port (and an explicitly empty port), and normalize an empty path to '/'. Assumes the URI is not being used as the target of an OPTIONS request.",
+      "tests": [
+        {
+          "id": "SCHEME-001",
+          "input": "http://example.com",
+          "expected": "http://example.com/",
+          "purpose": "An empty HTTP path becomes '/'."
+        },
+        {
+          "id": "SCHEME-002",
+          "input": "https://example.com",
+          "expected": "https://example.com/",
+          "purpose": "An empty HTTPS path becomes '/'."
+        },
+        {
+          "id": "SCHEME-003",
+          "input": "http://example.com:80/a",
+          "expected": "http://example.com/a",
+          "purpose": "Remove the default HTTP port 80."
+        },
+        {
+          "id": "SCHEME-004",
+          "input": "https://example.com:443/a",
+          "expected": "https://example.com/a",
+          "purpose": "Remove the default HTTPS port 443."
+        },
+        {
+          "id": "SCHEME-005",
+          "input": "http://example.com:8080/a",
+          "expected": "http://example.com:8080/a",
+          "purpose": "Keep a non-default HTTP port."
+        },
+        {
+          "id": "SCHEME-006",
+          "input": "https://example.com:8443/a",
+          "expected": "https://example.com:8443/a",
+          "purpose": "Keep a non-default HTTPS port."
+        },
+        {
+          "id": "SCHEME-007",
+          "input": "http://example.com:443/a",
+          "expected": "http://example.com:443/a",
+          "purpose": "443 is not the default HTTP port."
+        },
+        {
+          "id": "SCHEME-008",
+          "input": "https://example.com:80/a",
+          "expected": "https://example.com:80/a",
+          "purpose": "80 is not the default HTTPS port."
+        },
+        {
+          "id": "SCHEME-009",
+          "input": "http://example.com:/a",
+          "expected": "http://example.com/a",
+          "purpose": "Remove an explicitly empty port component."
+        },
+        {
+          "id": "SCHEME-010",
+          "input": "https://example.com:/a",
+          "expected": "https://example.com/a",
+          "purpose": "Remove an explicitly empty HTTPS port component."
+        },
+        {
+          "id": "SCHEME-011",
+          "input": "http://example.com:80",
+          "expected": "http://example.com/",
+          "purpose": "Remove default port and insert '/' for empty path."
+        },
+        {
+          "id": "SCHEME-012",
+          "input": "https://example.com:443?x=1",
+          "expected": "https://example.com/?x=1",
+          "purpose": "Remove default port and insert '/' before query."
+        },
+        {
+          "id": "SCHEME-013",
+          "input": "http://example.com#frag",
+          "expected": "http://example.com/#frag",
+          "purpose": "Insert '/' before fragment when path is empty."
+        },
+        {
+          "id": "SCHEME-014",
+          "input": "http://example.com?",
+          "expected": "http://example.com/?",
+          "purpose": "Insert '/' and preserve an explicitly empty query delimiter."
+        },
+        {
+          "id": "SCHEME-015",
+          "input": "http://example.com/a",
+          "expected": "http://example.com/a",
+          "purpose": "A non-empty path is not changed by scheme-based normalization."
+        },
+        {
+          "id": "SCHEME-016",
+          "input": "http://example.com/",
+          "expected": "http://example.com/",
+          "purpose": "An existing slash remains a slash."
+        },
+        {
+          "id": "SCHEME-017",
+          "input": "http://example.com:80/",
+          "expected": "http://example.com/",
+          "purpose": "Remove default port when path already contains '/'."
+        },
+        {
+          "id": "SCHEME-018",
+          "input": "https://example.com:443/",
+          "expected": "https://example.com/",
+          "purpose": "Remove default HTTPS port when path already contains '/'."
+        }
+      ]
+    },
+    {
+      "section": "05_preservation_and_non_normalization",
+      "description": "These are deliberate no-op checks. RFC 3986 does not authorize sorting query parameters, changing case in case-sensitive components, deleting duplicate parameters, or trimming path slashes.",
+      "tests": [
+        {
+          "id": "KEEP-001",
+          "input": "http://example.com/A",
+          "expected": "http://example.com/A",
+          "purpose": "Preserve path case."
+        },
+        {
+          "id": "KEEP-002",
+          "input": "http://example.com/a%2Fb",
+          "expected": "http://example.com/a%2Fb",
+          "purpose": "Preserve encoded reserved slash."
+        },
+        {
+          "id": "KEEP-003",
+          "input": "http://example.com/a/b/",
+          "expected": "http://example.com/a/b/",
+          "purpose": "Do not remove a trailing slash."
+        },
+        {
+          "id": "KEEP-004",
+          "input": "http://example.com/a//b",
+          "expected": "http://example.com/a//b",
+          "purpose": "Do not collapse repeated slashes."
+        },
+        {
+          "id": "KEEP-005",
+          "input": "http://example.com/?b=2&a=1",
+          "expected": "http://example.com/?b=2&a=1",
+          "purpose": "Do not sort query parameters."
+        },
+        {
+          "id": "KEEP-006",
+          "input": "http://example.com/?a=1&a=2",
+          "expected": "http://example.com/?a=1&a=2",
+          "purpose": "Do not remove or merge duplicate parameters."
+        },
+        {
+          "id": "KEEP-007",
+          "input": "http://example.com/?flag&empty=",
+          "expected": "http://example.com/?flag&empty=",
+          "purpose": "Preserve parameter form and order."
+        },
+        {
+          "id": "KEEP-008",
+          "input": "http://example.com/?q=Hello%20World",
+          "expected": "http://example.com/?q=Hello%20World",
+          "purpose": "Space remains percent-encoded; %20 is not unreserved."
+        },
+        {
+          "id": "KEEP-009",
+          "input": "http://example.com/?q=a+b",
+          "expected": "http://example.com/?q=a+b",
+          "purpose": "Do not translate '+' into a space."
+        },
+        {
+          "id": "KEEP-010",
+          "input": "http://example.com/a;b=1,c=2",
+          "expected": "http://example.com/a;b=1,c=2",
+          "purpose": "Do not rewrite literal path sub-delimiters."
+        },
+        {
+          "id": "KEEP-011",
+          "input": "http://example.com/a%3Bb%3Dc",
+          "expected": "http://example.com/a%3Bb%3Dc",
+          "purpose": "Keep encoded reserved delimiters encoded."
+        },
+        {
+          "id": "KEEP-012",
+          "input": "http://example.com/?x=/a?b=c",
+          "expected": "http://example.com/?x=/a?b=c",
+          "purpose": "Preserve permitted '/' and '?' characters inside the query."
+        },
+        {
+          "id": "KEEP-013",
+          "input": "http://example.com/a%25b",
+          "expected": "http://example.com/a%25b",
+          "purpose": "Do not decode reserved percent sign."
+        },
+        {
+          "id": "KEEP-014",
+          "input": "http://example.com/a.b",
+          "expected": "http://example.com/a.b",
+          "purpose": "Ordinary dots inside a segment are preserved."
+        },
+        {
+          "id": "KEEP-015",
+          "input": "http://example.com./path",
+          "expected": "http://example.com./path",
+          "purpose": "Do not remove a trailing dot from the hostname."
+        },
+        {
+          "id": "KEEP-016",
+          "input": "http://example.com:8080/Path?A=1#Frag",
+          "expected": "http://example.com:8080/Path?A=1#Frag",
+          "purpose": "Preserve non-default port and case-sensitive components."
+        }
+      ]
+    },
+    {
+      "section": "06_combined_order_and_interaction",
+      "description": "These tests combine normalization rules. In particular, percent-decoding of unreserved characters must happen before dot-segment removal, because %2E and %2E%2E can become complete dot segments.",
+      "tests": [
+        {
+          "id": "MIX-001",
+          "input": "HTTP://EXAMPLE.COM:80/a/./b/../%7euser?q=%41%2f",
+          "expected": "http://example.com/a/~user?q=A%2F",
+          "purpose": "Scheme/host case, default port, dot removal, unreserved decoding, and reserved escape preservation."
+        },
+        {
+          "id": "MIX-002",
+          "input": "HTTPS://EXAMPLE.COM:443/a/%2e%2e/b/%7E?q=%7e",
+          "expected": "https://example.com/b/~?q=~",
+          "purpose": "Default port removal; decode %2E%2E before removing parent segment; normalize query escape."
+        },
+        {
+          "id": "MIX-003",
+          "input": "HtTp://ExAmPlE.CoM:80/%2e/a/../B",
+          "expected": "http://example.com/B",
+          "purpose": "Case normalization, default port, encoded dot removal, ordinary dot removal."
+        },
+        {
+          "id": "MIX-004",
+          "input": "http://EXAMPLE.COM:80/a/%2E%2E/",
+          "expected": "http://example.com/",
+          "purpose": "Encoded parent segment is decoded before path segment normalization."
+        },
+        {
+          "id": "MIX-005",
+          "input": "https://EXAMPLE.COM:443/a//b/../%41",
+          "expected": "https://example.com/a//A",
+          "purpose": "Default port and host case; preserve doubled slash; resolve parent; decode A."
+        },
+        {
+          "id": "MIX-006",
+          "input": "HTTP://EXAMPLE.COM:/a/./b?x=%7e%2f",
+          "expected": "http://example.com/a/b?x=~%2F",
+          "purpose": "Empty port, host/scheme case, dot removal, query percent normalization."
+        },
+        {
+          "id": "MIX-007",
+          "input": "http://EXAMPLE.com:8080/a/../b/%2f",
+          "expected": "http://example.com:8080/b/%2F",
+          "purpose": "Non-default port retained; host lowercased; path normalized; reserved escape uppercased."
+        },
+        {
+          "id": "MIX-008",
+          "input": "https://Example.COM:443?x=%41",
+          "expected": "https://example.com/?x=A",
+          "purpose": "Host case/default port/empty path/query decoding."
+        },
+        {
+          "id": "MIX-009",
+          "input": "http://example.com/a/%2e/b/../c",
+          "expected": "http://example.com/a/c",
+          "purpose": "Decode %2e then remove '.'; then resolve '..'."
+        },
+        {
+          "id": "MIX-010",
+          "input": "http://example.com/a/%2E%2E/b/./c/../d",
+          "expected": "http://example.com/b/d",
+          "purpose": "Decode encoded '..', then remove parent and current segments in sequence."
+        },
+        {
+          "id": "MIX-011",
+          "input": "HTTP://USER%3Aname:Pa%73s@EXAMPLE.COM:80/a/../%7E?q=%2f#Frag%2f",
+          "expected": "http://USER%3Aname:Pass@example.com/a/~?q=%2F#Frag%2F",
+          "purpose": "Normalize user-info escapes, host/scheme, default port, path and query/fragment escapes."
+        },
+        {
+          "id": "MIX-012",
+          "input": "http://example.com:80/a%2Fb/../c%2Fd",
+          "expected": "http://example.com/c%2Fd",
+          "purpose": "Encoded slash is not a separator; the complete preceding segment is removed."
+        },
+        {
+          "id": "MIX-013",
+          "input": "https://EXAMPLE.COM:443//a/./b/../?x=1&x=2",
+          "expected": "https://example.com//a/?x=1&x=2",
+          "purpose": "Preserve repeated leading slash, trailing slash, query order, and duplicates."
+        },
+        {
+          "id": "MIX-014",
+          "input": "http://example.com/%252e%252e/a",
+          "expected": "http://example.com/%252e%252e/a",
+          "purpose": "No recursive percent decoding; %25 stays encoded, so no '..' segment is formed."
+        },
+        {
+          "id": "MIX-015",
+          "input": "http://example.com/%25%32%65%25%32%65/a",
+          "expected": "http://example.com/%252e%252e/a",
+          "purpose": "One-pass percent normalization must not recursively decode newly created percent triplets."
+        },
+        {
+          "id": "MIX-016",
+          "input": "HTTPS://[2001:DB8::A]:443/a/../B%7e",
+          "expected": "https://[2001:db8::a]/B~",
+          "purpose": "IPv6 host case, default port, dot removal, unreserved decoding."
+        },
+        {
+          "id": "MIX-017",
+          "input": "http://example.com/a/../../b?x=%2f&y=%7e",
+          "expected": "http://example.com/b?x=%2F&y=~",
+          "purpose": "Root-bounded dot removal and query percent normalization."
+        },
+        {
+          "id": "MIX-018",
+          "input": "HTTP://EXAMPLE.COM:80",
+          "expected": "http://example.com/",
+          "purpose": "Scheme/host case, default port, and empty path normalization."
+        },
+        {
+          "id": "MIX-019",
+          "input": "http://example.com/a/./b/../",
+          "expected": "http://example.com/a/",
+          "purpose": "Dot removal with final trailing slash preserved."
+        },
+        {
+          "id": "MIX-020",
+          "input": "https://EXAMPLE.COM:443/%2E/%2E%2E/x",
+          "expected": "https://example.com/x",
+          "purpose": "Encoded current and parent segments are normalized in the correct order."
+        }
+      ]
+    },
+    {
+      "section": "07_fragment_and_empty_delimiter_policy",
+      "description": "These tests are for a generic URI normalizer that retains query/fragment delimiters. HTTP clients normally do not send fragments in the HTTP request-target. Confirm with the client whether the signed 'resource URI' includes fragments; do not silently strip them in the normalizer.",
+      "tests": [
+        {
+          "id": "FRAG-001",
+          "input": "http://example.com/a#section",
+          "expected": "http://example.com/a#section",
+          "purpose": "Preserve fragment text."
+        },
+        {
+          "id": "FRAG-002",
+          "input": "http://example.com/a#%7e",
+          "expected": "http://example.com/a#~",
+          "purpose": "Normalize unreserved percent-encoding in fragment."
+        },
+        {
+          "id": "FRAG-003",
+          "input": "http://example.com/a#%2f",
+          "expected": "http://example.com/a#%2F",
+          "purpose": "Uppercase reserved escape in fragment, do not decode it."
+        },
+        {
+          "id": "FRAG-004",
+          "input": "http://example.com/a?x=1#part",
+          "expected": "http://example.com/a?x=1#part",
+          "purpose": "Preserve query and fragment in their original positions."
+        },
+        {
+          "id": "FRAG-005",
+          "input": "http://example.com/a?x=1#x=2",
+          "expected": "http://example.com/a?x=1#x=2",
+          "purpose": "A '?' after '#' belongs to the fragment."
+        },
+        {
+          "id": "FRAG-006",
+          "input": "http://example.com/a?",
+          "expected": "http://example.com/a?",
+          "purpose": "Preserve an explicitly empty query delimiter."
+        },
+        {
+          "id": "FRAG-007",
+          "input": "http://example.com/a#",
+          "expected": "http://example.com/a#",
+          "purpose": "Preserve an explicitly empty fragment delimiter."
+        },
+        {
+          "id": "FRAG-008",
+          "input": "http://example.com?x=1#f",
+          "expected": "http://example.com/?x=1#f",
+          "purpose": "Insert slash for empty path without changing query/fragment."
+        },
+        {
+          "id": "FRAG-009",
+          "input": "http://example.com?#",
+          "expected": "http://example.com/?#",
+          "purpose": "Preserve both empty query and empty fragment delimiters."
+        },
+        {
+          "id": "FRAG-010",
+          "input": "http://example.com/a%23b",
+          "expected": "http://example.com/a%23b",
+          "purpose": "Encoded hash in the path does not begin a fragment."
+        }
+      ]
+    }
+  ],
+  "invalid_inputs": [
+    {
+      "id": "INVALID-001",
+      "input": "http://",
+      "expected_outcome": "reject",
+      "reason": "HTTP URI has no host."
+    },
+    {
+      "id": "INVALID-002",
+      "input": "http:///path",
+      "expected_outcome": "reject",
+      "reason": "HTTP URI has an empty host."
+    },
+    {
+      "id": "INVALID-003",
+      "input": "https:///example.com",
+      "expected_outcome": "reject",
+      "reason": "HTTP URI has an empty host."
+    },
+    {
+      "id": "INVALID-004",
+      "input": "http://example.com/a%",
+      "expected_outcome": "reject",
+      "reason": "Malformed percent-encoding: incomplete triplet."
+    },
+    {
+      "id": "INVALID-005",
+      "input": "http://example.com/a%G0",
+      "expected_outcome": "reject",
+      "reason": "Malformed percent-encoding: non-hexadecimal digit."
+    },
+    {
+      "id": "INVALID-006",
+      "input": "http://example.com/a%0G",
+      "expected_outcome": "reject",
+      "reason": "Malformed percent-encoding: non-hexadecimal digit."
+    },
+    {
+      "id": "INVALID-007",
+      "input": "http://example.com/a b",
+      "expected_outcome": "reject",
+      "reason": "Raw space is not permitted in an RFC 3986 URI; caller should percent-encode it as %20."
+    },
+    {
+      "id": "INVALID-008",
+      "input": "http://example.com/a\\b",
+      "expected_outcome": "reject",
+      "reason": "Raw backslash is not a URI path separator under RFC 3986."
+    },
+    {
+      "id": "INVALID-009",
+      "input": "ftp://example.com/a",
+      "expected_outcome": "reject_or_unsupported",
+      "reason": "Valid URI scheme in general, but outside this HTTP/HTTPS normalization profile."
+    },
+    {
+      "id": "INVALID-010",
+      "input": "/relative/path",
+      "expected_outcome": "reject_or_unsupported",
+      "reason": "Relative reference, not an absolute HTTP/HTTPS URI."
+    },
+    {
+      "id": "INVALID-011",
+      "input": "http://[2001:db8::1/a",
+      "expected_outcome": "reject",
+      "reason": "Unclosed IPv6 address literal."
+    },
+    {
+      "id": "INVALID-012",
+      "input": "http://2001:db8::1/a",
+      "expected_outcome": "reject",
+      "reason": "IPv6 literal must be bracketed in the URI authority."
+    },
+    {
+      "id": "INVALID-013",
+      "input": "http://example.com:abc/a",
+      "expected_outcome": "reject",
+      "reason": "Port component must consist of decimal digits (or be empty)."
+    },
+    {
+      "id": "INVALID-014",
+      "input": "http://example.com:%2F/a",
+      "expected_outcome": "reject",
+      "reason": "Percent-encoded character is not a valid port digit."
+    },
+    {
+      "id": "INVALID-015",
+      "input": "http://exa mple.com/a",
+      "expected_outcome": "reject",
+      "reason": "Raw space is not allowed in the host."
+    }
+  ],
+  "source_references": [
+    "RFC 3986: https://www.rfc-editor.org/rfc/rfc3986.html",
+    "RFC 9110 section 4.2.3: https://www.rfc-editor.org/rfc/rfc9110.html#section-4.2.3"
+  ]
+}
