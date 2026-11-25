@@ -1,0 +1,1222 @@
+{
+  "title": "RFC 3986 URI Normalization Test Corpus",
+  "profile": "Absolute HTTP/HTTPS URIs. RFC 3986 sections 6.2.2.1, 6.2.2.2, 6.2.2.3, and 6.2.3 (with RFC 5.2.4 dot-segment removal and BDEW API-Webdienste 1.2 section 3.3 query preservation).",
+  "assumptions": [
+    "Inputs are ASCII URI strings targeting absolute http or https resources (relative references without scheme, and non-http/https schemes, are rejected in the strict HTTP/HTTPS profile; generic RFC 3986 variants are tested separately in profile_dependent_tests).",
+    "Strict RFC 3986 parsing applies: empty hosts (e.g. 'http://', 'http:///a', 'http://:80/a') and missing '//' authority delimiters (e.g. 'http:/a') are rejected per RFC 9110 sections 4.2.1/4.2.2 and RFC 3986 section 6.2.3.",
+    "Percent-encoding decoding applies strictly in a single pass to RFC 3986 section 2.3 unreserved ASCII octets only (ALPHA / DIGIT / '-' / '.' / '_' / '~'); '%25' is never double-decoded.",
+    "Consecutive slashes ('//') and trailing slashes ('/a/') are preserved byte-for-byte; RFC 3986 does not collapse empty path segments.",
+    "Query parameters are preserved in exact order with duplicates, empty values, valueless keys, '+' literals, and empty '?' delimiters intact (BDEW 3.3 and RFC 3986 6.2.3).",
+    "IPv6 address literals undergo hex lowercasing per RFC 3986 section 3.2.2 without mandatory RFC 5952 zero-compression; trailing DNS dots are preserved per RFC 3986 (see profile_dependent_tests for stricter/extended variants).",
+    "Idempotence invariant: for every valid test case, normalize(expected) MUST equal expected."
+  ],
+  "recommended_order": [
+    "1. Validate raw input against strict RFC 3986 URI syntax and HTTP/HTTPS profile requirements (reject empty/whitespace/non-ASCII/invalid percent-escapes/missing scheme/missing '//' authority/empty host).",
+    "2. Parse into components: (scheme, authority[userinfo, host, port], path, query, fragment) before modifying any component.",
+    "3. Syntax-Based Normalization (6.2.2.1 & 6.2.2.2) per component: lowercase scheme; normalize host (lowercase IP-literal hex; for reg-name decode unreserved %XX, lowercase ASCII letters including decoded ones, uppercase hex digits of remaining %XX); for path and query (and userinfo/fragment if accepted), perform single-pass decoding of unreserved %XX (preserving letter case) and uppercase hex digits of all remaining %XX triplets.",
+    "4. Path Segment Normalization (6.2.2.3): apply RFC 3986 section 5.2.4 remove_dot_segments exclusively to the path component (after percent-encoding normalization so %2e/%2E is handled, while %2f/%2F remains a segment byte, and never touching query or fragment).",
+    "5. Scheme-Based Normalization (6.2.3 / RFC 9110 4.2.3): remove explicit ':' and port if port is empty or numerically equal to the scheme default (80 for http, 443 for https, including zero-padded forms such as :080 or :00443); normalize empty path to '/'. Preserve empty '?' delimiter.",
+    "6. Recompose the normalized URI per RFC 3986 section 5.3."
+  ],
+  "sections": [
+    {
+      "section": "01_case_normalization",
+      "description": "RFC 3986 6.2.2.1 & 3.2.2: lowercase the scheme and host (including IPv6/IPvFuture hex and unreserved ASCII letters decoded from reg-name percent triplets); uppercase hexadecimal digits in all retained percent triplets. Path, query, and decoded unreserved characters outside host remain case-sensitive.",
+      "tests": [
+        {
+          "id": "CASE-001",
+          "input": "HTTP://EXAMPLE.COM/a",
+          "expected": "http://example.com/a",
+          "purpose": "Lowercase scheme and DNS host."
+        },
+        {
+          "id": "CASE-002",
+          "input": "HtTp://ExAmPlE.CoM/a",
+          "expected": "http://example.com/a",
+          "purpose": "Mixed-case scheme and host."
+        },
+        {
+          "id": "CASE-003",
+          "input": "HTTPS://API.EXAMPLE.DE/v1/Resources",
+          "expected": "https://api.example.de/v1/Resources",
+          "purpose": "Lowercase HTTPS scheme and host while preserving uppercase in path."
+        },
+        {
+          "id": "CASE-004",
+          "input": "http://Sub.Domain.EXAMPLE.COM/Path/Case?KeyName=ValueData",
+          "expected": "http://sub.domain.example.com/Path/Case?KeyName=ValueData",
+          "purpose": "Preserve case in path and query keys/values."
+        },
+        {
+          "id": "CASE-005",
+          "input": "http://example.com/%3a%2f%3f%23%5b%5d%40",
+          "expected": "http://example.com/%3A%2F%3F%23%5B%5D%40",
+          "purpose": "Uppercase lowercase hex digits in percent-encoded gen-delims."
+        },
+        {
+          "id": "CASE-006",
+          "input": "https://example.com/a?x=%3d%26%2b%2c%3b",
+          "expected": "https://example.com/a?x=%3D%26%2B%2C%3B",
+          "purpose": "Uppercase lowercase hex digits in percent-encoded sub-delims in query."
+        },
+        {
+          "id": "CASE-007",
+          "input": "http://example.com/%c3%a4%C3%B6%e2%82%ac",
+          "expected": "http://example.com/%C3%A4%C3%B6%E2%82%AC",
+          "purpose": "Uppercase mixed-case hex digits in multi-byte UTF-8 percent triplets."
+        },
+        {
+          "id": "CASE-008",
+          "input": "http://%45%58AMPLE.COM/a",
+          "expected": "http://example.com/a",
+          "purpose": "Percent-encoded uppercase ASCII letters (%45='E', %58='X') in reg-name are decoded and lowercased as host."
+        },
+        {
+          "id": "CASE-009",
+          "input": "http://ex%61mple.com/a",
+          "expected": "http://example.com/a",
+          "purpose": "Percent-encoded lowercase ASCII letter (%61='a') in reg-name is decoded."
+        },
+        {
+          "id": "CASE-010",
+          "input": "http://ex%c3%bc.EXAMPLE.com/a",
+          "expected": "http://ex%C3%BC.example.com/a",
+          "purpose": "RFC 3986 3.2.2: non-unreserved percent-encodings in host keep uppercase hex while host ASCII letters are lowercased."
+        },
+        {
+          "id": "CASE-011",
+          "input": "http://ex%2bAMPLE.COM/a",
+          "expected": "http://ex%2Bample.com/a",
+          "purpose": "Percent-encoded sub-delim '+' (%2b) in reg-name stays encoded with uppercase hex while host letters are lowercased."
+        },
+        {
+          "id": "CASE-012",
+          "input": "http://[2001:DB8::1]/a",
+          "expected": "http://[2001:db8::1]/a",
+          "purpose": "Lowercase hexadecimal digits in IPv6 literal host."
+        },
+        {
+          "id": "CASE-013",
+          "input": "https://[::FFFF:192.0.2.1]/a",
+          "expected": "https://[::ffff:192.0.2.1]/a",
+          "purpose": "Lowercase hexadecimal digits in IPv4-mapped IPv6 literal host."
+        },
+        {
+          "id": "CASE-014",
+          "input": "http://[2001:0DB8:85A3:0000:0000:8A2E:0370:7334]/a",
+          "expected": "http://[2001:0db8:85a3:0000:0000:8a2e:0370:7334]/a",
+          "purpose": "RFC 3986 3.2.2 hex lowercasing on full-form IPv6 literal without altering leading zeros."
+        },
+        {
+          "id": "CASE-015",
+          "input": "http://[V1.FE80::A]/a",
+          "expected": "http://[v1.fe80::a]/a",
+          "purpose": "Lowercase IPvFuture literal host."
+        },
+        {
+          "id": "CASE-016",
+          "input": "http://example.com/%41%5a%61%7a?%4b=%76",
+          "expected": "http://example.com/AZaz?K=v",
+          "purpose": "Decoded unreserved ASCII letters in path and query retain original case."
+        }
+      ]
+    },
+    {
+      "section": "02_percent_encoding_normalization",
+      "description": "RFC 3986 6.2.2.2: decode percent-encoded octets for ASCII unreserved characters (ALPHA / DIGIT / '-' / '.' / '_' / '~') in a single pass. Keep encoded reserved, non-ASCII, and '%' octets encoded with uppercase hex digits. Never alter valid unencoded reserved characters or convert '+' to/from space.",
+      "tests": [
+        {
+          "id": "PCT-001",
+          "input": "http://example.com/%41%4d%5a%61%6d%7a",
+          "expected": "http://example.com/AMZamz",
+          "purpose": "Decode ALPHA boundary octets (%41='A', %5A='Z', %61='a', %7A='z')."
+        },
+        {
+          "id": "PCT-002",
+          "input": "http://example.com/%30%35%39",
+          "expected": "http://example.com/059",
+          "purpose": "Decode DIGIT boundary octets (%30='0', %39='9')."
+        },
+        {
+          "id": "PCT-003",
+          "input": "http://example.com/%2d%2e%5f%7e/a?k=%2D%2E%5F%7E",
+          "expected": "http://example.com/-._~/a?k=-._~",
+          "purpose": "Decode all four unreserved punctuation characters ('-', '.', '_', '~') in path and query."
+        },
+        {
+          "id": "PCT-004",
+          "input": "http://example.com/~user/%7euser/%7Euser",
+          "expected": "http://example.com/~user/~user/~user",
+          "purpose": "Tilde is unreserved under RFC 3986 (unlike legacy RFC 1738); encoded tilde decodes and literal tilde stays unencoded."
+        },
+        {
+          "id": "PCT-005",
+          "input": "http://example.com/%2c%2f%3a%40%5b%5e%60%7b%7d%7f",
+          "expected": "http://example.com/%2C%2F%3A%40%5B%5E%60%7B%7D%7F",
+          "purpose": "Boundary ASCII octets immediately adjacent to unreserved ranges remain percent-encoded with uppercase hex."
+        },
+        {
+          "id": "PCT-006",
+          "input": "http://example.com/a%2Fb%3Fc%23d%40e%3Af",
+          "expected": "http://example.com/a%2Fb%3Fc%23d%40e%3Af",
+          "purpose": "Percent-encoded gen-delims in path must not be decoded."
+        },
+        {
+          "id": "PCT-007",
+          "input": "http://example.com/a%21%24%26%27%28%29%2A%2B%2C%3B%3Db",
+          "expected": "http://example.com/a%21%24%26%27%28%29%2A%2B%2C%3B%3Db",
+          "purpose": "Percent-encoded sub-delims in path must not be decoded."
+        },
+        {
+          "id": "PCT-008",
+          "input": "http://example.com/a:b@c/!$&'()*+,;=?k=1:2@3/4?5",
+          "expected": "http://example.com/a:b@c/!$&'()*+,;=?k=1:2@3/4?5",
+          "purpose": "Valid unencoded pchar and query characters must not be percent-encoded."
+        },
+        {
+          "id": "PCT-009",
+          "input": "http://example.com/search?q=a+b&r=a%2bb&s=a%20b",
+          "expected": "http://example.com/search?q=a+b&r=a%2Bb&s=a%20b",
+          "purpose": "RFC 3986 does not treat '+' as space or decode '%2b' to '+'; '%20' stays '%20'."
+        },
+        {
+          "id": "PCT-010",
+          "input": "http://example.com/%25/%2541/%257e/%252f",
+          "expected": "http://example.com/%25/%2541/%257e/%252f",
+          "purpose": "Percent-encoded '%' (%25) must never be double-decoded; following literal characters stay untouched."
+        },
+        {
+          "id": "PCT-011",
+          "input": "http://example.com/%25%34%31/%25%37%65",
+          "expected": "http://example.com/%2541/%257e",
+          "purpose": "Single-pass normalization: %25 stays %25 while unreserved %34/%31/%37/%65 decode to '4'/'1'/'7'/'e' without re-evaluating %41 or %7e."
+        },
+        {
+          "id": "PCT-012",
+          "input": "http://example.com/a%20b%0a?q=%c3%a4%e2%82%ac%ff",
+          "expected": "http://example.com/a%20b%0A?q=%C3%A4%E2%82%AC%FF",
+          "purpose": "Spaces, control bytes, UTF-8 octets, and high bytes stay encoded with uppercase hex."
+        },
+        {
+          "id": "PCT-013",
+          "input": "http://127.0.0.%31/a",
+          "expected": "http://127.0.0.1/a",
+          "purpose": "Decode unreserved digit in host reg-name."
+        },
+        {
+          "id": "PCT-014",
+          "input": "http://example%2ecom/a",
+          "expected": "http://example.com/a",
+          "purpose": "Decode unreserved dot (%2e) in host reg-name."
+        },
+        {
+          "id": "PCT-015",
+          "input": "http://ex%2d1%5f%7e.example.com/a",
+          "expected": "http://ex-1_~.example.com/a",
+          "purpose": "Decode unreserved '-', '_', '~' in host reg-name."
+        },
+        {
+          "id": "PCT-016",
+          "input": "http://example.com/%41%42%43%44%45%46%47%48%49%4a%4b%4c%4d%4e%4f%50%51%52%53%54%55%56%57%58%59%5a%61%62%63%64%65%66%67%68%69%6a%6b%6c%6d%6e%6f%70%71%72%73%74%75%76%77%78%79%7a%30%31%32%33%34%35%36%37%38%39%2d%2e%5f%7e",
+          "expected": "http://example.com/ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~",
+          "purpose": "Exhaustive test of all 66 RFC 3986 section 2.3 unreserved characters."
+        }
+      ]
+    },
+    {
+      "section": "03_path_segment_normalization",
+      "description": "RFC 3986 6.2.2.3 & 5.2.4: apply remove_dot_segments to the path component after percent-encoding normalization. Consecutive slashes and trailing slashes are preserved; dot-segments in query are untouched; encoded slashes (%2F) are not segment delimiters.",
+      "tests": [
+        {
+          "id": "PATH-001",
+          "input": "http://example.com/a/b/c/./../../g",
+          "expected": "http://example.com/a/g",
+          "purpose": "RFC 3986 5.2.4 canonical example 1."
+        },
+        {
+          "id": "PATH-002",
+          "input": "http://example.com/mid/content=5/../6",
+          "expected": "http://example.com/mid/6",
+          "purpose": "RFC 3986 5.2.4 canonical example 2 adapted to HTTP path."
+        },
+        {
+          "id": "PATH-003",
+          "input": "http://example.com/.",
+          "expected": "http://example.com/",
+          "purpose": "Single dot at root resolves to '/'."
+        },
+        {
+          "id": "PATH-004",
+          "input": "http://example.com/./",
+          "expected": "http://example.com/",
+          "purpose": "Single dot with trailing slash at root resolves to '/'."
+        },
+        {
+          "id": "PATH-005",
+          "input": "http://example.com/..",
+          "expected": "http://example.com/",
+          "purpose": "Double dot at root is clamped to '/'."
+        },
+        {
+          "id": "PATH-006",
+          "input": "http://example.com/../",
+          "expected": "http://example.com/",
+          "purpose": "Double dot with trailing slash at root is clamped to '/'."
+        },
+        {
+          "id": "PATH-007",
+          "input": "http://example.com/../a",
+          "expected": "http://example.com/a",
+          "purpose": "Leading '..' above root does not break following segment."
+        },
+        {
+          "id": "PATH-008",
+          "input": "http://example.com/../../a",
+          "expected": "http://example.com/a",
+          "purpose": "Multiple leading '..' segments above root are clamped."
+        },
+        {
+          "id": "PATH-009",
+          "input": "http://example.com/a/.",
+          "expected": "http://example.com/a/",
+          "purpose": "Trailing '/.' resolves to directory slash '/a/'."
+        },
+        {
+          "id": "PATH-010",
+          "input": "http://example.com/a/./",
+          "expected": "http://example.com/a/",
+          "purpose": "Trailing '/./' resolves to '/a/'."
+        },
+        {
+          "id": "PATH-011",
+          "input": "http://example.com/a/b/..",
+          "expected": "http://example.com/a/",
+          "purpose": "Trailing '/..' pops 'b' and keeps trailing slash '/a/'."
+        },
+        {
+          "id": "PATH-012",
+          "input": "http://example.com/a/b/../",
+          "expected": "http://example.com/a/",
+          "purpose": "Trailing '/../' pops 'b' and keeps trailing slash '/a/'."
+        },
+        {
+          "id": "PATH-013",
+          "input": "http://example.com/a/..",
+          "expected": "http://example.com/",
+          "purpose": "Popping sole segment under root yields '/'."
+        },
+        {
+          "id": "PATH-014",
+          "input": "http://example.com/a/b/../../..",
+          "expected": "http://example.com/",
+          "purpose": "Excessive trailing '..' segments clamp at '/'."
+        },
+        {
+          "id": "PATH-015",
+          "input": "http://example.com/a/b/../../../c",
+          "expected": "http://example.com/c",
+          "purpose": "Excessive mid-path '..' segments clamp at root before continuing to 'c'."
+        },
+        {
+          "id": "PATH-016",
+          "input": "http://example.com/a/././b",
+          "expected": "http://example.com/a/b",
+          "purpose": "Consecutive single-dot segments removed."
+        },
+        {
+          "id": "PATH-017",
+          "input": "http://example.com/.../.a/a./..b/b../a",
+          "expected": "http://example.com/.../.a/a./..b/b../a",
+          "purpose": "Segments containing dots that are not complete '.' or '..' segments must not be altered."
+        },
+        {
+          "id": "PATH-018",
+          "input": "http://example.com/.well-known/security.txt",
+          "expected": "http://example.com/.well-known/security.txt",
+          "purpose": "Real-world dot-prefixed segment preserved."
+        },
+        {
+          "id": "PATH-019",
+          "input": "http://example.com//a",
+          "expected": "http://example.com//a",
+          "purpose": "Leading empty path segment ('//') must be preserved."
+        },
+        {
+          "id": "PATH-020",
+          "input": "http://example.com/a//b/",
+          "expected": "http://example.com/a//b/",
+          "purpose": "Consecutive slashes inside path and trailing slash must be preserved."
+        },
+        {
+          "id": "PATH-021",
+          "input": "http://example.com///",
+          "expected": "http://example.com///",
+          "purpose": "Multiple consecutive empty segments preserved."
+        },
+        {
+          "id": "PATH-022",
+          "input": "http://example.com/a/b//..",
+          "expected": "http://example.com/a/b/",
+          "purpose": "RFC 3986 5.2.4 step 2C pops the empty segment created by '//' before '..'."
+        },
+        {
+          "id": "PATH-023",
+          "input": "http://example.com/a/b//../c",
+          "expected": "http://example.com/a/b/c",
+          "purpose": "RFC 3986 5.2.4 pops empty segment before '..' and keeps 'b'."
+        },
+        {
+          "id": "PATH-024",
+          "input": "http://example.com/a//b/..",
+          "expected": "http://example.com/a//",
+          "purpose": "RFC 3986 5.2.4 pops 'b' while preserving preceding empty segment '//'."
+        },
+        {
+          "id": "PATH-025",
+          "input": "http://example.com/a//b/../c",
+          "expected": "http://example.com/a//c",
+          "purpose": "RFC 3986 5.2.4 pops 'b' while preserving preceding empty segment '//' before 'c'."
+        },
+        {
+          "id": "PATH-026",
+          "input": "http://example.com//..",
+          "expected": "http://example.com/",
+          "purpose": "RFC 3986 5.2.4 buffer trace on '//..' yields '/'."
+        },
+        {
+          "id": "PATH-027",
+          "input": "http://example.com///..",
+          "expected": "http://example.com//",
+          "purpose": "RFC 3986 5.2.4 buffer trace on '///..' yields '//'."
+        },
+        {
+          "id": "PATH-028",
+          "input": "http://example.com/a/%2e/b",
+          "expected": "http://example.com/a/b",
+          "purpose": "Percent-encoded '.' (%2e) decoded before dot-segment removal."
+        },
+        {
+          "id": "PATH-029",
+          "input": "http://example.com/a/%2e%2e/b",
+          "expected": "http://example.com/b",
+          "purpose": "Percent-encoded '..' (%2e%2e) decoded before dot-segment removal."
+        },
+        {
+          "id": "PATH-030",
+          "input": "http://example.com/a/.%2E/b",
+          "expected": "http://example.com/b",
+          "purpose": "Mixed literal and percent-encoded dot (.%2E) resolves as '..'."
+        },
+        {
+          "id": "PATH-031",
+          "input": "http://example.com/%2e",
+          "expected": "http://example.com/",
+          "purpose": "Trailing '/%2e' resolves to '/'."
+        },
+        {
+          "id": "PATH-032",
+          "input": "http://example.com/%2e%2e",
+          "expected": "http://example.com/",
+          "purpose": "Trailing '/%2e%2e' clamps to '/'."
+        },
+        {
+          "id": "PATH-033",
+          "input": "http://example.com/a/b/%2E%2E",
+          "expected": "http://example.com/a/",
+          "purpose": "Trailing '/%2E%2E' pops 'b' and keeps trailing slash."
+        },
+        {
+          "id": "PATH-034",
+          "input": "http://example.com/a/%2f/../b",
+          "expected": "http://example.com/a/b",
+          "purpose": "Encoded slash '%2f' is a single segment '%2F' and is popped by '..'."
+        },
+        {
+          "id": "PATH-035",
+          "input": "http://example.com/a%2Fb/..",
+          "expected": "http://example.com/",
+          "purpose": "'a%2Fb' is a single segment popped as a whole by '..'."
+        },
+        {
+          "id": "PATH-036",
+          "input": "http://example.com/a/%2e%2e%2fb",
+          "expected": "http://example.com/a/..%2Fb",
+          "purpose": "Decoded '..' followed by encoded '%2F' is not a complete '..' segment."
+        },
+        {
+          "id": "PATH-037",
+          "input": "http://example.com/a/%2f..%2fb",
+          "expected": "http://example.com/a/%2F..%2Fb",
+          "purpose": "Encoded '%2F' cannot delimit a '..' segment."
+        },
+        {
+          "id": "PATH-038",
+          "input": "http://example.com/a/b?next=/x/../y&cur=./z",
+          "expected": "http://example.com/a/b?next=/x/../y&cur=./z",
+          "purpose": "Dot-segments in query must never be removed."
+        },
+        {
+          "id": "PATH-039",
+          "input": "http://example.com/?/../a",
+          "expected": "http://example.com/?/../a",
+          "purpose": "RFC 3986 5.2.4 note: query separated from path before dot removal."
+        }
+      ]
+    },
+    {
+      "section": "04_scheme_based_normalization",
+      "description": "RFC 3986 6.2.3 & RFC 9110 4.2.1-4.2.3: normalize empty path to '/' for http/https; elide empty port ':' and scheme default port (80 for http, 443 for https); preserve non-default ports, empty query delimiter '?', query parameter ordering, and trailing DNS dot.",
+      "tests": [
+        {
+          "id": "SCHEME-001",
+          "input": "http://example.com",
+          "expected": "http://example.com/",
+          "purpose": "Empty path in http URI normalized to '/'."
+        },
+        {
+          "id": "SCHEME-002",
+          "input": "https://example.com",
+          "expected": "https://example.com/",
+          "purpose": "Empty path in https URI normalized to '/'."
+        },
+        {
+          "id": "SCHEME-003",
+          "input": "http://example.com/",
+          "expected": "http://example.com/",
+          "purpose": "Already-normal root http URI unchanged."
+        },
+        {
+          "id": "SCHEME-004",
+          "input": "http://example.com:/",
+          "expected": "http://example.com/",
+          "purpose": "RFC 3986 6.2.3 example: empty port and ':' delimiter removed."
+        },
+        {
+          "id": "SCHEME-005",
+          "input": "http://example.com:80/",
+          "expected": "http://example.com/",
+          "purpose": "RFC 3986 6.2.3 example: default http port 80 removed."
+        },
+        {
+          "id": "SCHEME-006",
+          "input": "http://example.com:80",
+          "expected": "http://example.com/",
+          "purpose": "Default port removed and empty path normalized to '/'."
+        },
+        {
+          "id": "SCHEME-007",
+          "input": "http://example.com:",
+          "expected": "http://example.com/",
+          "purpose": "Empty port removed and empty path normalized to '/'."
+        },
+        {
+          "id": "SCHEME-008",
+          "input": "https://example.com:443/",
+          "expected": "https://example.com/",
+          "purpose": "Default https port 443 removed."
+        },
+        {
+          "id": "SCHEME-009",
+          "input": "https://example.com:443",
+          "expected": "https://example.com/",
+          "purpose": "Default https port 443 removed and empty path normalized to '/'."
+        },
+        {
+          "id": "SCHEME-010",
+          "input": "https://example.com:",
+          "expected": "https://example.com/",
+          "purpose": "Empty port removed and empty path normalized to '/' for https."
+        },
+        {
+          "id": "SCHEME-011",
+          "input": "https://example.com:/a/b",
+          "expected": "https://example.com/a/b",
+          "purpose": "Empty port removed while preserving path."
+        },
+        {
+          "id": "SCHEME-012",
+          "input": "http://example.com:080/a",
+          "expected": "http://example.com/a",
+          "purpose": "RFC 3986 3.2.3 & 6.2.3: decimal port 080 equals default port 80 and is elided."
+        },
+        {
+          "id": "SCHEME-013",
+          "input": "https://example.com:00443/a",
+          "expected": "https://example.com/a",
+          "purpose": "Decimal port 00443 equals default port 443 for https and is elided."
+        },
+        {
+          "id": "SCHEME-014",
+          "input": "http://example.com:443/a",
+          "expected": "http://example.com:443/a",
+          "purpose": "Port 443 is NOT default for http and must be preserved."
+        },
+        {
+          "id": "SCHEME-015",
+          "input": "https://example.com:80/a",
+          "expected": "https://example.com:80/a",
+          "purpose": "Port 80 is NOT default for https and must be preserved."
+        },
+        {
+          "id": "SCHEME-016",
+          "input": "http://example.com:8080/a",
+          "expected": "http://example.com:8080/a",
+          "purpose": "Non-default http port preserved."
+        },
+        {
+          "id": "SCHEME-017",
+          "input": "https://example.com:8443/a",
+          "expected": "https://example.com:8443/a",
+          "purpose": "Non-default https port preserved."
+        },
+        {
+          "id": "SCHEME-018",
+          "input": "http://example.com:0/a",
+          "expected": "http://example.com:0/a",
+          "purpose": "Port 0 is non-default and must be preserved."
+        },
+        {
+          "id": "SCHEME-019",
+          "input": "http://example.com:65535/a",
+          "expected": "http://example.com:65535/a",
+          "purpose": "Max 16-bit TCP port preserved."
+        },
+        {
+          "id": "SCHEME-020",
+          "input": "http://example.com?a=1",
+          "expected": "http://example.com/?a=1",
+          "purpose": "Empty path normalized to '/' before query."
+        },
+        {
+          "id": "SCHEME-021",
+          "input": "https://example.com:443?a=1",
+          "expected": "https://example.com/?a=1",
+          "purpose": "Default port removed and empty path normalized to '/' before query."
+        },
+        {
+          "id": "SCHEME-022",
+          "input": "http://example.com/?",
+          "expected": "http://example.com/?",
+          "purpose": "RFC 3986 6.2.3 explicit rule: empty query delimiter '?' must not be removed."
+        },
+        {
+          "id": "SCHEME-023",
+          "input": "https://example.com?",
+          "expected": "https://example.com/?",
+          "purpose": "Empty path normalized to '/' while keeping empty query delimiter '?'."
+        },
+        {
+          "id": "SCHEME-024",
+          "input": "https://example.com/v1/items?z=1&a=2&a=1&empty=&flag",
+          "expected": "https://example.com/v1/items?z=1&a=2&a=1&empty=&flag",
+          "purpose": "Query parameter order, duplicate keys, empty values, and valueless keys preserved."
+        },
+        {
+          "id": "SCHEME-025",
+          "input": "http://example.com./a",
+          "expected": "http://example.com./a",
+          "purpose": "Trailing dot in DNS reg-name is preserved under RFC 3986."
+        },
+        {
+          "id": "SCHEME-026",
+          "input": "http://192.0.2.1:80/a",
+          "expected": "http://192.0.2.1/a",
+          "purpose": "IPv4 host with default http port elided."
+        },
+        {
+          "id": "SCHEME-027",
+          "input": "https://[::1]:443",
+          "expected": "https://[::1]/",
+          "purpose": "IPv6 host with default https port elided and empty path normalized to '/'."
+        }
+      ]
+    },
+    {
+      "section": "05_combined_and_bdew_api_cases",
+      "description": "End-to-end interactions combining case, percent-encoding, dot-segment removal, scheme-based normalization, and realistic BDEW API-Webdienste 1.2 section 3.3 signed request URIs.",
+      "tests": [
+        {
+          "id": "COMB-001",
+          "input": "HTTP://www.EXAMPLE.com:80/a/./b/../b/%63/%7bfoo%7d",
+          "expected": "http://www.example.com/a/b/c/%7Bfoo%7D",
+          "purpose": "RFC 3986 6.2.2 example adapted to HTTP with default port."
+        },
+        {
+          "id": "COMB-002",
+          "input": "HtTpS://Ex%41mPlE.CoM:443/%2e%2e/v1/%7eapi/./items/%2e%2e/list?b=2&a=%31%2d%32",
+          "expected": "https://example.com/v1/~api/list?b=2&a=1-2",
+          "purpose": "Combined mixed-case scheme, encoded uppercase host letter, default port, encoded dot-segments, tilde, and ordered query params."
+        },
+        {
+          "id": "COMB-003",
+          "input": "HTTPS://[2001:DB8::A]:0443?k=%2f%2e%2e%2f",
+          "expected": "https://[2001:db8::a]/?k=%2F..%2F",
+          "purpose": "Combined IPv6 lowercasing, zero-padded default port removal, empty path to '/', and dot/slash escapes in query."
+        },
+        {
+          "id": "COMB-004",
+          "input": "HTTP://%3127.0.0.%31:080/a/%2e/..",
+          "expected": "http://127.0.0.1/",
+          "purpose": "Encoded digits in host, zero-padded default port, and path reducing to '/'."
+        },
+        {
+          "id": "COMB-005",
+          "input": "HTTPS://API.MSB-EXAMPLE.DE:443/api/v1/controlMeasures/orders?fromDateTime=2025-10-01T00%3a00%3a00%2b02%3a00&toDateTime=2025-10-02T00%3a00%3a00Z&maloId=DE%5f12345%2d67890",
+          "expected": "https://api.msb-example.de/api/v1/controlMeasures/orders?fromDateTime=2025-10-01T00%3A00%3A00%2B02%3A00&toDateTime=2025-10-02T00%3A00%3A00Z&maloId=DE_12345-67890",
+          "purpose": "BDEW API request with ISO-8601 timestamps (%3a->%3A, %2b->%2B) and unreserved %5f/%2d decoded in query."
+        },
+        {
+          "id": "COMB-006",
+          "input": "https://api.example.de/v1/maloIdent/./check/%2e%2e/verify?callback=/v1/../v2&tag=b&tag=a",
+          "expected": "https://api.example.de/v1/verify?callback=/v1/../v2&tag=b&tag=a",
+          "purpose": "BDEW API URI: path dot-segments removed while query dot-segments and query parameter order/duplicates remain untouched."
+        },
+        {
+          "id": "COMB-007",
+          "input": "HTTPS://API.EXAMPLE.DE:8443/v1/res/%25%37%65/%7e/.",
+          "expected": "https://api.example.de:8443/v1/res/%257e/~/",
+          "purpose": "Non-default port preserved, single-pass percent decoding, tilde decoded, trailing dot segment removed."
+        }
+      ]
+    }
+  ],
+  "equivalence_groups": [
+    {
+      "id": "EQUIV-001",
+      "expected": "http://example.com/",
+      "equivalent_inputs": [
+        "http://example.com",
+        "http://example.com/",
+        "http://example.com:/",
+        "http://example.com:80/",
+        "http://example.com:80",
+        "http://example.com:",
+        "HTTP://EXAMPLE.COM:080",
+        "http://%45%78ample.com:80/.",
+        "http://example.com/a/../",
+        "http://example.com/%2e%2e"
+      ],
+      "purpose": "All forms must canonicalize to identical 'http://example.com/' so Hash(URI) matches."
+    },
+    {
+      "id": "EQUIV-002",
+      "expected": "https://api.example.de/v1/orders?page=1&sort=asc",
+      "equivalent_inputs": [
+        "https://api.example.de/v1/orders?page=1&sort=asc",
+        "HTTPS://API.EXAMPLE.DE:443/v1/./orders?%70age=%31&sort=a%73c",
+        "https://api.example.de:0443/v1/tmp/%2e%2e/orders?page=1&sort=asc"
+      ],
+      "purpose": "Equivalent BDEW API HTTPS URIs must produce identical normalized strings."
+    }
+  ],
+  "non_equivalent_pairs": [
+    {
+      "id": "NEQ-001",
+      "uri_a": "http://example.com/",
+      "uri_b": "http://example.com/?",
+      "reason": "RFC 3986 6.2.3: presence vs absence of empty query delimiter '?'."
+    },
+    {
+      "id": "NEQ-002",
+      "uri_a": "http://example.com/a",
+      "uri_b": "http://example.com/A",
+      "reason": "RFC 3986 6.2.2.1: path component is case-sensitive."
+    },
+    {
+      "id": "NEQ-003",
+      "uri_a": "http://example.com/a",
+      "uri_b": "http://example.com/a/",
+      "reason": "Trailing slash distinguishes distinct paths."
+    },
+    {
+      "id": "NEQ-004",
+      "uri_a": "http://example.com/a/b",
+      "uri_b": "http://example.com/a//b",
+      "reason": "RFC 3986 preserves consecutive slashes."
+    },
+    {
+      "id": "NEQ-005",
+      "uri_a": "http://example.com/a/b",
+      "uri_b": "http://example.com/a%2Fb",
+      "reason": "Reserved '/' delimiter vs percent-encoded '%2F' data."
+    },
+    {
+      "id": "NEQ-006",
+      "uri_a": "http://example.com/?a=1&b=2",
+      "uri_b": "http://example.com/?b=2&a=1",
+      "reason": "RFC 3986 6.2.2/6.2.3 does not reorder query parameters."
+    },
+    {
+      "id": "NEQ-007",
+      "uri_a": "http://example.com/?q=a+b",
+      "uri_b": "http://example.com/?q=a%20b",
+      "reason": "'+' is not normalized to '%20' under RFC 3986."
+    },
+    {
+      "id": "NEQ-008",
+      "uri_a": "http://example.com/?q=a+b",
+      "uri_b": "http://example.com/?q=a%2Bb",
+      "reason": "Unencoded '+' vs percent-encoded '%2B' reserved sub-delim."
+    },
+    {
+      "id": "NEQ-009",
+      "uri_a": "http://example.com/a",
+      "uri_b": "https://example.com/a",
+      "reason": "Different schemes ('http' vs 'https')."
+    },
+    {
+      "id": "NEQ-010",
+      "uri_a": "http://example.com:443/a",
+      "uri_b": "https://example.com:443/a",
+      "reason": "Port 443 is preserved for http and elided for https."
+    },
+    {
+      "id": "NEQ-011",
+      "uri_a": "http://example.com/%2541",
+      "uri_b": "http://example.com/A",
+      "reason": "Double-decoding '%2541' to 'A' is forbidden."
+    }
+  ],
+  "invalid_inputs": [
+    {
+      "id": "INVALID-001",
+      "input": "http://",
+      "expected_outcome": "reject",
+      "reason": "HTTP URI has no host."
+    },
+    {
+      "id": "INVALID-002",
+      "input": "https://",
+      "expected_outcome": "reject",
+      "reason": "HTTPS URI has no host."
+    },
+    {
+      "id": "INVALID-003",
+      "input": "http:///a",
+      "expected_outcome": "reject",
+      "reason": "HTTP URI has empty host before path."
+    },
+    {
+      "id": "INVALID-004",
+      "input": "https:///a",
+      "expected_outcome": "reject",
+      "reason": "HTTPS URI has empty host before path."
+    },
+    {
+      "id": "INVALID-005",
+      "input": "http://:80/a",
+      "expected_outcome": "reject",
+      "reason": "HTTP URI has port but empty host (RFC 3986 6.2.3 & RFC 9110 4.2.1)."
+    },
+    {
+      "id": "INVALID-006",
+      "input": "https://:443/a",
+      "expected_outcome": "reject",
+      "reason": "HTTPS URI has port but empty host."
+    },
+    {
+      "id": "INVALID-007",
+      "input": "http://user@/a",
+      "expected_outcome": "reject",
+      "reason": "Empty host with userinfo."
+    },
+    {
+      "id": "INVALID-008",
+      "input": "http:/a/b",
+      "expected_outcome": "reject",
+      "reason": "HTTP URI missing '//' authority delimiter."
+    },
+    {
+      "id": "INVALID-009",
+      "input": "https:example.com/a",
+      "expected_outcome": "reject",
+      "reason": "HTTPS URI missing '//' authority delimiter."
+    },
+    {
+      "id": "INVALID-010",
+      "input": "",
+      "expected_outcome": "reject",
+      "reason": "Empty string is not a valid URI."
+    },
+    {
+      "id": "INVALID-011",
+      "input": "   ",
+      "expected_outcome": "reject",
+      "reason": "Whitespace-only string is not a valid URI."
+    },
+    {
+      "id": "INVALID-012",
+      "input": " http://example.com/a",
+      "expected_outcome": "reject",
+      "reason": "Leading whitespace is invalid in RFC 3986 URI."
+    },
+    {
+      "id": "INVALID-013",
+      "input": "http://example.com/a ",
+      "expected_outcome": "reject",
+      "reason": "Trailing whitespace is invalid in RFC 3986 URI."
+    },
+    {
+      "id": "INVALID-014",
+      "input": "http://example.com/a b",
+      "expected_outcome": "reject",
+      "reason": "Unencoded space in path is forbidden."
+    },
+    {
+      "id": "INVALID-015",
+      "input": "http://example.com/?q=a b",
+      "expected_outcome": "reject",
+      "reason": "Unencoded space in query is forbidden."
+    },
+    {
+      "id": "INVALID-016",
+      "input": "http://example.com/a\nb",
+      "expected_outcome": "reject",
+      "reason": "Control character LF (0x0A) is forbidden."
+    },
+    {
+      "id": "INVALID-017",
+      "input": "http://example.com/a\tb",
+      "expected_outcome": "reject",
+      "reason": "Control character TAB (0x09) is forbidden."
+    },
+    {
+      "id": "INVALID-018",
+      "input": "/a/b",
+      "expected_outcome": "reject",
+      "reason": "Relative path reference without scheme/authority."
+    },
+    {
+      "id": "INVALID-019",
+      "input": "//example.com/a",
+      "expected_outcome": "reject",
+      "reason": "Network-path relative reference without scheme."
+    },
+    {
+      "id": "INVALID-020",
+      "input": "example.com/a",
+      "expected_outcome": "reject",
+      "reason": "Missing scheme and '//'."
+    },
+    {
+      "id": "INVALID-021",
+      "input": "?a=1",
+      "expected_outcome": "reject",
+      "reason": "Query-only relative reference."
+    },
+    {
+      "id": "INVALID-022",
+      "input": "1http://example.com/a",
+      "expected_outcome": "reject",
+      "reason": "RFC 3986 3.1: scheme must start with ALPHA."
+    },
+    {
+      "id": "INVALID-023",
+      "input": "://example.com/a",
+      "expected_outcome": "reject",
+      "reason": "Empty scheme."
+    },
+    {
+      "id": "INVALID-024",
+      "input": "http_s://example.com/a",
+      "expected_outcome": "reject",
+      "reason": "RFC 3986 3.1: underscore '_' is invalid in scheme."
+    },
+    {
+      "id": "INVALID-025",
+      "input": "http://example.com/%",
+      "expected_outcome": "reject",
+      "reason": "Incomplete percent triplet at end of URI."
+    },
+    {
+      "id": "INVALID-026",
+      "input": "http://example.com/%2",
+      "expected_outcome": "reject",
+      "reason": "Percent triplet with only 1 hex digit."
+    },
+    {
+      "id": "INVALID-027",
+      "input": "http://example.com/%ZZ",
+      "expected_outcome": "reject",
+      "reason": "Non-hex characters in percent triplet."
+    },
+    {
+      "id": "INVALID-028",
+      "input": "http://example.com/%2G",
+      "expected_outcome": "reject",
+      "reason": "Second character of percent triplet is non-hex."
+    },
+    {
+      "id": "INVALID-029",
+      "input": "http://example.com/?q=%2",
+      "expected_outcome": "reject",
+      "reason": "Truncated percent triplet in query."
+    },
+    {
+      "id": "INVALID-030",
+      "input": "http://ex%ZZmple.com/a",
+      "expected_outcome": "reject",
+      "reason": "Invalid percent triplet in host."
+    },
+    {
+      "id": "INVALID-031",
+      "input": "http://example.com/a\\b",
+      "expected_outcome": "reject",
+      "reason": "Backslash '\\' is invalid in RFC 3986 (unlike WHATWG URL)."
+    },
+    {
+      "id": "INVALID-032",
+      "input": "http://example.com/a<b",
+      "expected_outcome": "reject",
+      "reason": "Unencoded '<' is invalid in RFC 3986."
+    },
+    {
+      "id": "INVALID-033",
+      "input": "http://example.com/a\"b",
+      "expected_outcome": "reject",
+      "reason": "Unencoded double quote '\"' is invalid in RFC 3986."
+    },
+    {
+      "id": "INVALID-034",
+      "input": "http://example.com/a{b}",
+      "expected_outcome": "reject",
+      "reason": "Unencoded '{' and '}' are invalid in RFC 3986."
+    },
+    {
+      "id": "INVALID-035",
+      "input": "http://example.com/a^b|c`d",
+      "expected_outcome": "reject",
+      "reason": "Unencoded '^', '|', and '`' are invalid in RFC 3986."
+    },
+    {
+      "id": "INVALID-036",
+      "input": "http://example.com/items?filter[id]=1",
+      "expected_outcome": "reject",
+      "reason": "Unencoded '[' and ']' are invalid outside IP-literal hosts in RFC 3986."
+    },
+    {
+      "id": "INVALID-037",
+      "input": "http://example.com/café",
+      "expected_outcome": "reject",
+      "reason": "Raw non-ASCII character is invalid in RFC 3986 URI (only valid in IRI)."
+    },
+    {
+      "id": "INVALID-038",
+      "input": "http://münchen.example/a",
+      "expected_outcome": "reject",
+      "reason": "Raw non-ASCII IDN host is invalid in RFC 3986 URI (must be Punycode or percent-encoded UTF-8)."
+    },
+    {
+      "id": "INVALID-039",
+      "input": "http://example.com:abc/a",
+      "expected_outcome": "reject",
+      "reason": "Port must match *DIGIT (non-digits invalid)."
+    },
+    {
+      "id": "INVALID-040",
+      "input": "http://example.com:-80/a",
+      "expected_outcome": "reject",
+      "reason": "Negative port invalid."
+    },
+    {
+      "id": "INVALID-041",
+      "input": "http://example.com:80:80/a",
+      "expected_outcome": "reject",
+      "reason": "Multiple colons in port/reg-name."
+    },
+    {
+      "id": "INVALID-042",
+      "input": "http://ex:ample.com/a",
+      "expected_outcome": "reject",
+      "reason": "Colon in host causes ':ample.com' to fail port *DIGIT syntax."
+    },
+    {
+      "id": "INVALID-043",
+      "input": "http://[::1/a",
+      "expected_outcome": "reject",
+      "reason": "Unclosed IPv6 literal bracket."
+    },
+    {
+      "id": "INVALID-044",
+      "input": "http://::1]/a",
+      "expected_outcome": "reject",
+      "reason": "Missing opening IPv6 literal bracket."
+    },
+    {
+      "id": "INVALID-045",
+      "input": "http://[]/a",
+      "expected_outcome": "reject",
+      "reason": "Empty IP-literal."
+    },
+    {
+      "id": "INVALID-046",
+      "input": "http://[2001:db8:::1]/a",
+      "expected_outcome": "reject",
+      "reason": "Invalid ':::' inside IPv6 literal."
+    },
+    {
+      "id": "INVALID-047",
+      "input": "http://[2001::db8::1]/a",
+      "expected_outcome": "reject",
+      "reason": "Multiple '::' compressions inside IPv6 literal."
+    },
+    {
+      "id": "INVALID-048",
+      "input": "http://[2001:db8:1:2:3:4:5:6:7]/a",
+      "expected_outcome": "reject",
+      "reason": "Too many 16-bit groups (9) in IPv6 literal."
+    },
+    {
+      "id": "INVALID-049",
+      "input": "http://[2001:db8::gggg]/a",
+      "expected_outcome": "reject",
+      "reason": "Non-hexadecimal digits in IPv6 literal."
+    },
+    {
+      "id": "INVALID-050",
+      "input": "http://[127.0.0.1]/a",
+      "expected_outcome": "reject",
+      "reason": "IPv4 literal cannot be enclosed in '[' ']' brackets."
+    },
+    {
+      "id": "INVALID-051",
+      "input": "http://[::ffff:999.0.0.1]/a",
+      "expected_outcome": "reject",
+      "reason": "Out-of-range IPv4 octet inside IPv4-embedded IPv6 literal."
+    },
+    {
+      "id": "INVALID-052",
+      "input": "http://[fe80::1%25eth0]/a",
+      "expected_outcome": "reject",
+      "reason": "IPv6 zone IDs are invalid in RFC 3986 (and RFC 6874 was obsoleted by RFC 9844)."
+    },
+    {
+      "id": "INVALID-053",
+      "input": "http://[v1.]/a",
+      "expected_outcome": "reject",
+      "reason": "IPvFuture requires at least one character after '.'."
+    },
+    {
+      "id": "INVALID-054",
+      "input": "http://[v.1]/a",
+      "expected_outcome": "reject",
+      "reason": "IPvFuture requires 1*HEXDIG before '.'."
+    },
+    {
+      "id": "INVALID-055",
+      "input": "http://user@name@example.com/a",
+      "expected_outcome": "reject",
+      "reason": "Multiple '@' delimiters in authority ('@' is invalid in userinfo and reg-name)."
+    },
+    {
+      "id": "INVALID-056",
+      "input": "http://exa[m]ple.com/a",
+      "expected_outcome": "reject",
+      "reason": "'[' and ']' are forbidden inside reg-name."
+    }
+  ],
+  "profile_dependent_tests": [
+    {
+      "id": "POLICY-001",
+      "input": "http://example.com/a#",
+      "policy_question": "Does the normalizer target RFC 3986 section 4.3 absolute-URI / RFC 9110 http-URI (fragments forbidden) or RFC 3986 section 3 URI (fragments allowed and empty '#' preserved)?",
+      "strict_http_absolute_uri_expected": "reject",
+      "generic_rfc3986_uri_expected": "http://example.com/a#",
+      "purpose": "RFC 3986 6.2.3 explicitly forbids stripping trailing '#' when fragments are supported."
+    },
+    {
+      "id": "POLICY-002",
+      "input": "http://example.com#frag",
+      "policy_question": "Fragments rejected vs accepted.",
+      "strict_http_absolute_uri_expected": "reject",
+      "generic_rfc3986_uri_expected": "http://example.com/#frag",
+      "purpose": "When fragments are supported, empty path still becomes '/' before '#frag'."
+    },
+    {
+      "id": "POLICY-003",
+      "input": "http://example.com/a#%7e%3aAb/x/../y",
+      "policy_question": "Fragments rejected vs accepted.",
+      "strict_http_absolute_uri_expected": "reject",
+      "generic_rfc3986_uri_expected": "http://example.com/a#~%3AAb/x/../y",
+      "purpose": "When fragments are supported, percent-encoding normalization applies, case is preserved, and remove_dot_segments does NOT run on fragment."
+    },
+    {
+      "id": "POLICY-004",
+      "input": "http://User:Pass%3a%7e@EXAMPLE.COM/a",
+      "policy_question": "Does the HTTP/HTTPS profile reject deprecated userinfo per RFC 9110 section 4.2.4, or normalize it per RFC 3986 6.2.2?",
+      "strict_http_absolute_uri_expected": "reject",
+      "generic_rfc3986_uri_expected": "http://User:Pass%3A~@example.com/a",
+      "purpose": "RFC 3986 userinfo preserves case and normalizes percent-encodings."
+    },
+    {
+      "id": "POLICY-005",
+      "input": "http://user:@EXAMPLE.COM/a",
+      "policy_question": "Userinfo rejected per RFC 9110 4.2.4 vs preserved per RFC 3986 6.2.3.",
+      "strict_http_absolute_uri_expected": "reject",
+      "generic_rfc3986_uri_expected": "http://user:@example.com/a",
+      "purpose": "RFC 3986 6.2.3 states empty delimiters in userinfo must not be stripped."
+    },
+    {
+      "id": "POLICY-006",
+      "input": "eXAMPLE://a/./b/../b/%63/%7bfoo%7d",
+      "policy_question": "HTTP/HTTPS-only scheme filter vs generic RFC 3986 URI normalizer.",
+      "strict_http_absolute_uri_expected": "reject",
+      "generic_rfc3986_uri_expected": "example://a/b/c/%7Bfoo%7D",
+      "purpose": "Verbatim example from RFC 3986 section 6.2.2."
+    },
+    {
+      "id": "POLICY-007",
+      "input": "MAILTO:Joe@Example.COM",
+      "policy_question": "HTTP/HTTPS-only vs generic syntax-only vs scheme-aware mailto normalization.",
+      "strict_http_absolute_uri_expected": "reject",
+      "generic_rfc3986_syntax_only_expected": "mailto:Joe@Example.COM",
+      "scheme_aware_rfc3986_expected": "mailto:Joe@example.com",
+      "purpose": "RFC 3986 section 6.2.3 scheme-specific hostname normalization inside opaque mailto path."
+    },
+    {
+      "id": "POLICY-008",
+      "input": "http://999.999.999.999/a",
+      "policy_question": "Pure RFC 3986 3.2.2 ABNF first-match fallback to reg-name vs strict IPv4/DNS validation.",
+      "strict_http_validator_expected": "reject",
+      "pure_rfc3986_abnf_expected": "http://999.999.999.999/a",
+      "purpose": "In RFC 3986 3.2.2 ABNF, non-IPv4 dotted-quad matches reg-name unless DNS/IPv4 semantics reject it."
+    },
+    {
+      "id": "POLICY-009",
+      "input": "http://012.0.0.1/a",
+      "policy_question": "Pure RFC 3986 reg-name fallback vs WHATWG/strict IPv4 rejection.",
+      "strict_http_validator_expected": "reject",
+      "pure_rfc3986_abnf_expected": "http://012.0.0.1/a",
+      "purpose": "RFC 3986 dec-octet forbids leading zeros, so 012.0.0.1 parses as reg-name (never octal 10.0.0.1!)."
+    },
+    {
+      "id": "POLICY-010",
+      "input": "http://example.com:65536/a",
+      "policy_question": "TCP 16-bit port range check (0..65535) vs pure RFC 3986 port = *DIGIT.",
+      "strict_http_validator_expected": "reject",
+      "pure_rfc3986_abnf_expected": "http://example.com:65536/a",
+      "purpose": "RFC 3986 section 3.2.3 syntax allows arbitrary *DIGIT without a 65535 cap."
+    },
+    {
+      "id": "POLICY-011",
+      "input": "http://example.com:08080/a",
+      "policy_question": "Numeric canonicalization of leading zeros on non-default ports vs literal retention.",
+      "strict_literal_6_2_3_expected": "http://example.com:08080/a",
+      "numeric_port_canonicalization_expected": "http://example.com:8080/a",
+      "purpose": "RFC 3986 6.2.3 only mandates eliding default/empty ports; stripping leading zeros on non-default ports varies by implementation."
+    },
+    {
+      "id": "POLICY-012",
+      "input": "http://[2001:0DB8:0000:0000:0000:0000:0000:0001]/a",
+      "policy_question": "Pure RFC 3986 hex lowercasing vs RFC 5952 canonical IPv6 compression.",
+      "pure_rfc3986_expected": "http://[2001:0db8:0000:0000:0000:0000:0000:0001]/a",
+      "rfc5952_expected": "http://[2001:db8::1]/a",
+      "purpose": "Distinguish RFC 3986 3.2.2 from RFC 5952 IPv6 canonical text representation."
+    }
+  ],
+  "source_references": [
+    "RFC 3986: Uniform Resource Identifier (URI): Generic Syntax (Sections 2.1, 2.2, 2.3, 3.1, 3.2, 3.3, 3.4, 3.5, 4.3, 5.2.4, 5.3, 6.2.2, 6.2.3)",
+    "RFC 9110: HTTP Semantics (Sections 4.2.1, 4.2.2, 4.2.3, 4.2.4)",
+    "BDEW: Regelungen zum Übertragungsweg für API-Webdienste, Version 1.2 (18.07.2025), Abschnitt 3.3 Inhaltsdatensicherungsebene"
+  ]
+}
