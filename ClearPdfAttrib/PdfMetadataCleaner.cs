@@ -22,18 +22,21 @@ public static class PdfMetadataCleaner
         using var pdf = new PdfDocument(reader);
 
         if (reader.IsEncrypted() && !reader.IsOpenedWithFullPermission())
-        {
             throw new BadPasswordException("PDF is encrypted without full (owner) permissions.");
-        }
 
-        if (skipSigned && HasDigitalSignatures(pdf))
+        if (!HasTargetMetadata(pdf))
+            return PdfInspectionStatus.CleanAlready;
+
+        if (HasDigitalSignatures(pdf))
         {
-            return PdfInspectionStatus.SkippedSigned;
+            if (skipSigned)
+                return PdfInspectionStatus.SkippedSigned;
+
+            throw new InvalidOperationException(
+                "PDF is digitally signed and --skip-signed is not enabled.");
         }
 
-        return HasTargetMetadata(pdf)
-            ? PdfInspectionStatus.NeedsCleaning
-            : PdfInspectionStatus.CleanAlready;
+        return PdfInspectionStatus.NeedsCleaning;
     }
 
     public static void ClearMetadata(string sourcePath, string destinationPath)

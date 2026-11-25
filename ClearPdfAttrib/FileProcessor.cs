@@ -42,7 +42,7 @@ public sealed class FileProcessor(ProcessingOptions options, ProcessingStatistic
         await Parallel.ForEachAsync(
             pdfFiles,
             parallelOptions,
-            async (file, ct) => await ProcessFileAsync(file, ct));
+            ProcessFileAsync);
     }
 
     private async IAsyncEnumerable<string> EnumeratePdfFilesAsync(
