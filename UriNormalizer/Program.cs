@@ -8,10 +8,10 @@ using BdewUriNormalization;
 
 string[] jsonPaths = args.Length > 0
     ? args
-    : ["C:\\SDKDevSign\\Training\\WPF Programns\\UriNormalizer\\unified\\Tests.json"];
-        //"C:\\SDKDevSign\\Training\\WPF Programns\\UriNormalizer\\unified\\gpt.json",
-        //"C:\\SDKDevSign\\Training\\WPF Programns\\UriNormalizer\\unified\\Gem.json",
-        //"C:\\SDKDevSign\\Training\\WPF Programns\\UriNormalizer\\unified\\claud.json"];
+    : ["C:\\SDKDevSign\\Training\\WPF Programns\\UriNormalizer\\unified\\Tests.json",
+        "C:\\SDKDevSign\\Training\\WPF Programns\\UriNormalizer\\unified\\gpt.json",
+        "C:\\SDKDevSign\\Training\\WPF Programns\\UriNormalizer\\unified\\Gem.json",
+        "C:\\SDKDevSign\\Training\\WPF Programns\\UriNormalizer\\unified\\claud.json"];
 
 var jsonOptions = new JsonSerializerOptions
 {
@@ -411,10 +411,14 @@ public sealed class PositiveTestCase
     [JsonPropertyName("input")] public string Input { get; set; } = "";
     [JsonPropertyName("expected")] public string Expected { get; set; } = "";
     [JsonPropertyName("purpose")] public string? Purpose { get; set; }
-    [JsonPropertyName("rfc")] public string? Rfc { get; set; }
-    [JsonPropertyName("policy")] public string? Policy { get; set; }
+    [JsonPropertyName("rfc"), JsonConverter(typeof(FlexibleStringConverter))]
+    public string? Rfc { get; set; }
+
+    [JsonPropertyName("policy"), JsonConverter(typeof(FlexibleStringConverter))]
+    public string? Policy { get; set; }
     [JsonPropertyName("alternative")] public string? Alternative { get; set; }
-    [JsonPropertyName("requires")] public string? Requires { get; set; }
+    [JsonPropertyName("requires"), JsonConverter(typeof(FlexibleStringConverter))]
+    public string? Requires { get; set; }
 }
 
 public sealed class InvalidInputTest
@@ -448,4 +452,30 @@ public sealed class PolicyTest
     [JsonPropertyName("policy_question")] public string? PolicyQuestion { get; set; }
     [JsonPropertyName("purpose")] public string? Purpose { get; set; }
     [JsonPropertyName("profile_expectations")] public Dictionary<string, string?> ProfileExpectations { get; set; } = new();
+}
+
+public sealed class FlexibleStringConverter : JsonConverter<string?>
+{
+    public override string? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        switch (reader.TokenType)
+        {
+            case JsonTokenType.String:
+                return reader.GetString();
+            case JsonTokenType.True:
+                return "true";
+            case JsonTokenType.False:
+                return "false";
+            case JsonTokenType.Null:
+                return null;
+            default:
+                {
+                    using var doc = JsonDocument.ParseValue(ref reader);
+                    return doc.RootElement.GetRawText();
+                }
+        }
+    }
+
+    public override void Write(Utf8JsonWriter writer, string? value, JsonSerializerOptions options)
+        => writer.WriteStringValue(value);
 }
