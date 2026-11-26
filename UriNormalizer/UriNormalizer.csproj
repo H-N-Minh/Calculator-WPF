@@ -8,6 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="xunit.assert" Version="2.9.3" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Update="AI Generated Tests\originals\Tests.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
