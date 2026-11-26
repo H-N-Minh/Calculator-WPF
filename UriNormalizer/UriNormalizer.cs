@@ -10,16 +10,13 @@ using System.Text;
 /// Pure URI normalizer implementing RFC 3986 Sections 6.2.2 and 6.2.3
 /// (including Section 5.2.4 dot-segment removal).
 /// </summary>
-public sealed class UriNormalizer
+public static class UriNormalizer
 {
     private const string HexDigits = "0123456789ABCDEF";
 
-    public string Normalize(string uri)
+    public static string Normalize(string uri)
     {
-        if (uri == null)
-        {
-            throw new ArgumentNullException(nameof(uri));
-        }
+        ArgumentNullException.ThrowIfNull(uri);
 
         int end = uri.Length;
 
@@ -117,7 +114,7 @@ public sealed class UriNormalizer
         else
         {
             path = NormalizePercentEncoding(path, false);
-            path = RemoveDotSegments(path);
+            path = RemoveDotSegments(path, hasAuthority);
         }
 
         // 6.2.3: empty path with authority normalizes to "/"
@@ -234,8 +231,8 @@ public sealed class UriNormalizer
         return sb == null ? s : sb.ToString();
     }
 
-    // 5.2.4: O(N) cursor-based remove_dot_segments
-    private static string RemoveDotSegments(string path)
+    // 5.2.4: O(N) cursor-based remove_dot_segments (with RFC 3986 §3.3 '//' guard when !hasAuthority)
+    private static string RemoveDotSegments(string path, bool hasAuthority)
     {
         if (path.IndexOf('.') < 0)
         {
@@ -256,7 +253,8 @@ public sealed class UriNormalizer
             {
                 i += 2;
             }
-            else if (StartsWithAt(path, i, "/./"))                     // 2B
+            else if (StartsWithAt(path, i, "/./")                      // 2B
+                  && (hasAuthority || output.Length > 0 || !StartsWithAt(path, i, "/.//")))
             {
                 i += 2;
             }
@@ -265,14 +263,17 @@ public sealed class UriNormalizer
                 output.Append('/');
                 break;
             }
-            else if (StartsWithAt(path, i, "/../"))                    // 2C
+            else if (StartsWithAt(path, i, "/../")                     // 2C
+                  && (hasAuthority || LastSlashIndex(output) > 0 || !StartsWithAt(path, i, "/..//")))
             {
-                PopSegment(output);
+                int lastSlash = LastSlashIndex(output);
+                output.Length = lastSlash >= 0 ? lastSlash : 0;
                 i += 3;
             }
             else if (i + 3 == len && StartsWithAt(path, i, "/.."))     // 2C
             {
-                PopSegment(output);
+                int lastSlash = LastSlashIndex(output);
+                output.Length = lastSlash >= 0 ? lastSlash : 0;
                 output.Append('/');
                 break;
             }
@@ -298,20 +299,22 @@ public sealed class UriNormalizer
         return output.ToString();
     }
 
+    private static int LastSlashIndex(StringBuilder sb)
+    {
+        for (int i = sb.Length - 1; i >= 0; i--)
+        {
+            if (sb[i] == '/')
+            {
+                return i;
+            }
+        }
+        return -1;
+    }
+
     private static bool StartsWithAt(string s, int index, string prefix)
     {
         return index + prefix.Length <= s.Length
             && string.CompareOrdinal(s, index, prefix, 0, prefix.Length) == 0;
-    }
-
-    private static void PopSegment(StringBuilder output)
-    {
-        int i = output.Length - 1;
-        while (i >= 0 && output[i] != '/')
-        {
-            i--;
-        }
-        output.Length = i >= 0 ? i : 0;
     }
 
     private static string NormalizeMailtoPath(string path)

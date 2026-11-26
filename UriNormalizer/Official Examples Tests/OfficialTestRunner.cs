@@ -40,31 +40,34 @@ internal class OfficialTestRunner
         ["http://example.com/data", "http://example.com/data/"]
         ];
 
-    public static int Start(string[] args)
+    public static int Start(string[] args, out int passed, out int total)
     {
-        var uriNormalizer = new UriNormalizer();
-        int total = 0;
-        int passed = 0;
-
+        Console.WriteLine("=== Running tests extracted from examples of official documents ===");
+        passed = 0;
+        total = 0;
         foreach (var (input, expected) in _dataSet)
         {
-            string actual = uriNormalizer.Normalize(input);
+            string actual = UriNormalizer.Normalize(input);
             Check(
                 actual == expected,
-                $"Normalize(\"{input}\") -> got \"{actual}\", expected \"{expected}\""
+                $"Normalize(\"{input}\") -> got \"{actual}\", expected \"{expected}\"",
+                ref total,
+                ref passed
             );
         }
 
         for (int g = 0; g < _equivalents.Count; g++)
         {
             var group = _equivalents[g];
-            string normA = uriNormalizer.Normalize(group[0]);
+            string normA = UriNormalizer.Normalize(group[0]);
             for (int i = 1; i < group.Count; i++)
             {
-                string normB = uriNormalizer.Normalize(group[i]);
+                string normB = UriNormalizer.Normalize(group[i]);
                 Check(
                     normA == normB,
-                    $"Equivalents[{g}] ({group[0]} vs {group[i]}) -> \"{normA}\" != \"{normB}\""
+                    $"Equivalents[{g}] ({group[0]} vs {group[i]}) -> \"{normA}\" != \"{normB}\"",
+                    ref total,
+                    ref passed
                 );
             }
         }
@@ -74,24 +77,29 @@ internal class OfficialTestRunner
             var group = _nonEquivalents[g];
             for (int i = 0; i < group.Count; i++)
             {
-                string normA = uriNormalizer.Normalize(group[i]);
+                string normA = UriNormalizer.Normalize(group[i]);
                 for (int j = i + 1; j < group.Count; j++)
                 {
-                    string normB = uriNormalizer.Normalize(group[j]);
+                    string normB = UriNormalizer.Normalize(group[j]);
                     Check(
                         normA != normB,
-                        $"NonEquivalents[{group}] ({group[i]} vs {group[j]}) -> unexpectedly equal: \"{normA}\""
+                        $"NonEquivalents[{group}] ({group[i]} vs {group[j]}) -> unexpectedly equal: \"{normA}\"",
+                        ref total,
+                        ref passed
                     );
                 }
             }
         }
 
+
+        Console.ForegroundColor = ConsoleColor.Blue;
         Console.WriteLine($"Completed: {passed}/{total} passed.");
+        Console.ResetColor();
 
         return passed == total ? 0 : 1;
 
 
-        void Check(bool condition, string message)
+        void Check(bool condition, string message, ref int total, ref int passed)
         {
             total++;
             if (condition)
@@ -100,7 +108,9 @@ internal class OfficialTestRunner
             }
             else
             {
+                Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine($"FAIL: {message}");
+                Console.ResetColor();
             }
         }
     }

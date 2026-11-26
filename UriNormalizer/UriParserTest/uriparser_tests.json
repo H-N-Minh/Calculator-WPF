@@ -1,0 +1,197 @@
+[
+  {
+    "SourceTest": "TestNormalizeSyntax",
+    "Mask": "ALL",
+    "IsPartialMaskTest": false,
+    "IsRelativeUri": false,
+    "Input": "eXAMPLE://a/./b/../b/%63/%7bfoo%7d",
+    "ExpectedUriparser622": "example://a/b/c/%7Bfoo%7D",
+    "ExpectedRfc3986_622_623": "example://a/b/c/%7Bfoo%7D"
+  },
+  {
+    "SourceTest": "TestNormalizeSyntax",
+    "Mask": "ALL",
+    "IsPartialMaskTest": false,
+    "IsRelativeUri": false,
+    "Input": "http://examp%4Ce.com/",
+    "ExpectedUriparser622": "http://example.com/",
+    "ExpectedRfc3986_622_623": "http://example.com/"
+  },
+  {
+    "SourceTest": "TestNormalizeSyntax",
+    "Mask": "ALL",
+    "IsPartialMaskTest": false,
+    "IsRelativeUri": false,
+    "Input": "http://example.com/a/b/%2E%2E/",
+    "ExpectedUriparser622": "http://example.com/a/",
+    "ExpectedRfc3986_622_623": "http://example.com/a/"
+  },
+  {
+    "SourceTest": "TestNormalizeSyntax",
+    "Mask": "ALL",
+    "IsPartialMaskTest": false,
+    "IsRelativeUri": false,
+    "Input": "http://user:pass@SOMEHOST.COM:123",
+    "ExpectedUriparser622": "http://user:pass@somehost.com:123",
+    "ExpectedRfc3986_622_623": "http://user:pass@somehost.com:123/",
+    "Note": "Adjusted from uriparser (6.2.2) to include RFC 3986 6.2.3 empty-path \u0027/\u0027 rule."
+  },
+  {
+    "SourceTest": "TestNormalizeSyntax",
+    "Mask": "ALL",
+    "IsPartialMaskTest": false,
+    "IsRelativeUri": false,
+    "Input": "https://%e4%bd%a0%e5%a5%bd%e4%bd%a0%e5%a5%bd.com",
+    "ExpectedUriparser622": "https://%E4%BD%A0%E5%A5%BD%E4%BD%A0%E5%A5%BD.com",
+    "ExpectedRfc3986_622_623": "https://%E4%BD%A0%E5%A5%BD%E4%BD%A0%E5%A5%BD.com/",
+    "Note": "Adjusted from uriparser (6.2.2) to include RFC 3986 6.2.3 empty-path \u0027/\u0027 rule."
+  },
+  {
+    "SourceTest": "TestNormalizeSyntax",
+    "Mask": "ALL",
+    "IsPartialMaskTest": false,
+    "IsRelativeUri": false,
+    "Input": "https://[2041:0000:140F::875B:131B]",
+    "ExpectedUriparser622": "https://[2041:0000:140f::875b:131b]",
+    "ExpectedRfc3986_622_623": "https://[2041:0000:140f::875b:131b]/",
+    "Note": "Adjusted from uriparser (6.2.2) to include RFC 3986 6.2.3 empty-path \u0027/\u0027 rule."
+  },
+  {
+    "SourceTest": "TestNormalizeSyntax",
+    "Mask": "ALL",
+    "IsPartialMaskTest": false,
+    "IsRelativeUri": false,
+    "Input": "HTTP://a:b@HOST:123/./1/2/../%41?abc#def",
+    "ExpectedUriparser622": "http://a:b@host:123/1/A?abc#def",
+    "ExpectedRfc3986_622_623": "http://a:b@host:123/1/A?abc#def"
+  },
+  {
+    "SourceTest": "TestNormalizeSyntaxPort",
+    "Mask": "URI_NORMALIZE_PORT",
+    "IsPartialMaskTest": false,
+    "IsRelativeUri": false,
+    "Input": "scheme://host:0/",
+    "ExpectedUriparser622": "scheme://host:0/",
+    "ExpectedRfc3986_622_623": "scheme://host:0/",
+    "Note": "uriparser strips leading zeros from ports (beyond strict 6.2.2 wording)."
+  },
+  {
+    "SourceTest": "TestNormalizeSyntaxPort",
+    "Mask": "URI_NORMALIZE_PORT",
+    "IsPartialMaskTest": false,
+    "IsRelativeUri": false,
+    "Input": "scheme://host:/",
+    "ExpectedUriparser622": "scheme://host/",
+    "ExpectedRfc3986_622_623": "scheme://host/"
+  },
+  {
+    "SourceTest": "TestNormalizeSyntaxPort",
+    "Mask": "URI_NORMALIZE_PORT",
+    "IsPartialMaskTest": false,
+    "IsRelativeUri": false,
+    "Input": "scheme://host:00/",
+    "ExpectedUriparser622": "scheme://host:0/",
+    "ExpectedRfc3986_622_623": "scheme://host:00/",
+    "Note": "uriparser strips leading zeros from ports (beyond strict 6.2.2 wording)."
+  },
+  {
+    "SourceTest": "TestNormalizeSyntaxPort",
+    "Mask": "URI_NORMALIZE_PORT",
+    "IsPartialMaskTest": false,
+    "IsRelativeUri": false,
+    "Input": "scheme://host:00080/",
+    "ExpectedUriparser622": "scheme://host:80/",
+    "ExpectedRfc3986_622_623": "scheme://host:00080/",
+    "Note": "uriparser strips leading zeros from ports (beyond strict 6.2.2 wording)."
+  },
+  {
+    "SourceTest": "TestNormalizeSyntaxPath",
+    "Mask": "URI_NORMALIZE_PATH",
+    "IsPartialMaskTest": false,
+    "IsRelativeUri": false,
+    "Input": "http://a/b/c/../../..",
+    "ExpectedUriparser622": "http://a/",
+    "ExpectedRfc3986_622_623": "http://a/"
+  },
+  {
+    "SourceTest": "TestNormalizeSyntaxPath",
+    "Mask": "URI_NORMALIZE_PATH",
+    "IsPartialMaskTest": false,
+    "IsRelativeUri": false,
+    "Input": "http://a/b/../c/../..",
+    "ExpectedUriparser622": "http://a/",
+    "ExpectedRfc3986_622_623": "http://a/"
+  },
+  {
+    "SourceTest": "TestNormalizeSyntaxPath",
+    "Mask": "URI_NORMALIZE_PATH",
+    "IsPartialMaskTest": false,
+    "IsRelativeUri": false,
+    "Input": "http://a/b/c/../../..",
+    "ExpectedUriparser622": "http://a/",
+    "ExpectedRfc3986_622_623": "http://a/"
+  },
+  {
+    "SourceTest": "TestNormalizeSyntaxPath",
+    "Mask": "URI_NORMALIZE_PATH",
+    "IsPartialMaskTest": false,
+    "IsRelativeUri": false,
+    "Input": "http://a/..",
+    "ExpectedUriparser622": "http://a/",
+    "ExpectedRfc3986_622_623": "http://a/"
+  },
+  {
+    "SourceTest": "TestNormalizeSyntaxPath",
+    "Mask": "URI_NORMALIZE_PATH",
+    "IsPartialMaskTest": false,
+    "IsRelativeUri": false,
+    "Input": "http://a/..///",
+    "ExpectedUriparser622": "http://a///",
+    "ExpectedRfc3986_622_623": "http://a///"
+  },
+  {
+    "SourceTest": "TestNormalizeSyntaxPath",
+    "Mask": "URI_NORMALIZE_PATH",
+    "IsPartialMaskTest": false,
+    "IsRelativeUri": false,
+    "Input": "http://a/..///..",
+    "ExpectedUriparser622": "http://a//",
+    "ExpectedRfc3986_622_623": "http://a//"
+  },
+  {
+    "SourceTest": "TestNormalizeBug262Fixed",
+    "Mask": "URI_NORMALIZE_PATH",
+    "IsPartialMaskTest": false,
+    "IsRelativeUri": false,
+    "Input": "scheme:/.//foo/bar",
+    "ExpectedUriparser622": "scheme:/.//foo/bar",
+    "ExpectedRfc3986_622_623": "scheme:/.//foo/bar"
+  },
+  {
+    "SourceTest": "TestNormalizeBug262Unchanged",
+    "Mask": "URI_NORMALIZE_PATH",
+    "IsPartialMaskTest": false,
+    "IsRelativeUri": false,
+    "Input": "scheme:/./foo/bar",
+    "ExpectedUriparser622": "scheme:/foo/bar",
+    "ExpectedRfc3986_622_623": "scheme:/foo/bar"
+  },
+  {
+    "SourceTest": "TestNormalizeBug262Unchanged",
+    "Mask": "URI_NORMALIZE_PATH",
+    "IsPartialMaskTest": false,
+    "IsRelativeUri": false,
+    "Input": "scheme://host/.//foo/bar",
+    "ExpectedUriparser622": "scheme://host//foo/bar",
+    "ExpectedRfc3986_622_623": "scheme://host//foo/bar"
+  },
+  {
+    "SourceTest": "TestNormalizeBug262Unchanged",
+    "Mask": "URI_NORMALIZE_PATH",
+    "IsPartialMaskTest": false,
+    "IsRelativeUri": false,
+    "Input": "scheme:./path1:/path2",
+    "ExpectedUriparser622": "scheme:path1:/path2",
+    "ExpectedRfc3986_622_623": "scheme:path1:/path2"
+  }
+]
