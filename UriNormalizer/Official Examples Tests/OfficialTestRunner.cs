@@ -6,7 +6,6 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using static System.Net.WebRequestMethods;
-using BdewUriNormalization;
 
 namespace Official_Examples_Tests;
 
@@ -19,11 +18,12 @@ internal class OfficialTestRunner
         ["HTTP://www.EXAMPLE.com/"] = "http://www.example.com/",
         ["http://example.com/%3a"] = "http://example.com/%3A",
         ["mailto:Joe@Example.COM"] = "mailto:Joe@example.com",
-        ["http://example.com/data"] = "http://example.com/data/",
+        ["http://example.com/data"] = "http://example.com/data",
         ["http://example.com/?"] = "http://example.com/?",
-        ["http://example.com#"] = "http://example.com#",
+        ["http://example.com#"] = "http://example.com/#",
         ["http://example.com:80/"] = "http://example.com/",
-        ["http://example.com:/"] = "http://example.com/"
+        ["http://example.com:/"] = "http://example.com/",
+        ["https://API.Example.com:443?a=1&b=%7e%2f"] = "https://api.example.com/?a=1&b=~%2F"
     };
 
     private static List<List<String>> _equivalents = [
@@ -31,23 +31,24 @@ internal class OfficialTestRunner
         ["http://example.com", "http://example.com/", "http://example.com:/", "http://example.com:80/"],
         ["HTTP://www.EXAMPLE.com/", "http://www.example.com/"],
         ["http://example.com/%3a", "http://example.com/%3A"],
-        ["mailto:Joe@Example.COM", "mailto:Joe@example.com"],
-        ["http://example.com/data", "http://example.com/data/"]
+        ["mailto:Joe@Example.COM", "mailto:Joe@example.com"]
     ];
 
     private static List<List<String>> _nonEquivalents = [
         ["http://example.com/?", "http://example.com"],
-        ["http://example.com", "http://example.com#"]
+        ["http://example.com", "http://example.com#"],
+        ["http://example.com/data", "http://example.com/data/"]
         ];
 
     public static int Start(string[] args)
     {
+        var uriNormalizer = new UriNormalizer();
         int total = 0;
         int passed = 0;
 
         foreach (var (input, expected) in _dataSet)
         {
-            string actual = UriNormalizer.Normalize(input);
+            string actual = uriNormalizer.Normalize(input);
             Check(
                 actual == expected,
                 $"Normalize(\"{input}\") -> got \"{actual}\", expected \"{expected}\""
@@ -57,10 +58,10 @@ internal class OfficialTestRunner
         for (int g = 0; g < _equivalents.Count; g++)
         {
             var group = _equivalents[g];
-            string normA = UriNormalizer.Normalize(group[0]);
+            string normA = uriNormalizer.Normalize(group[0]);
             for (int i = 1; i < group.Count; i++)
             {
-                string normB = UriNormalizer.Normalize(group[i]);
+                string normB = uriNormalizer.Normalize(group[i]);
                 Check(
                     normA == normB,
                     $"Equivalents[{g}] ({group[0]} vs {group[i]}) -> \"{normA}\" != \"{normB}\""
@@ -73,10 +74,10 @@ internal class OfficialTestRunner
             var group = _nonEquivalents[g];
             for (int i = 0; i < group.Count; i++)
             {
-                string normA = UriNormalizer.Normalize(group[i]);
+                string normA = uriNormalizer.Normalize(group[i]);
                 for (int j = i + 1; j < group.Count; j++)
                 {
-                    string normB = UriNormalizer.Normalize(group[j]);
+                    string normB = uriNormalizer.Normalize(group[j]);
                     Check(
                         normA != normB,
                         $"NonEquivalents[{group}] ({group[i]} vs {group[j]}) -> unexpectedly equal: \"{normA}\""

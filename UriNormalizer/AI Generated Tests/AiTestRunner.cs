@@ -4,12 +4,12 @@
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using BdewUriNormalization;
 
 public static class AiTestRunner
 {
     public static int Start(string[] args)
     {
+        var uriNormalizer = new UriNormalizer();
         string[] jsonPaths = args.Length > 0
             ? args
             : ["C:\\SDKDevSign\\Training\\WPF Programns\\UriNormalizer\\AI Generated Tests\\Tests.json",
@@ -62,7 +62,7 @@ public static class AiTestRunner
                     total++;
                     try
                     {
-                        string actual = UriNormalizer.Normalize(test.Input);
+                        string actual = uriNormalizer.Normalize(test.Input);
                         if (actual == test.Expected)
                         {
                             passed++;
@@ -112,7 +112,7 @@ public static class AiTestRunner
 
                 try
                 {
-                    actualOutput = UriNormalizer.Normalize(test.Input);
+                    actualOutput = uriNormalizer.Normalize(test.Input);
                 }
                 catch (Exception ex) when (ex is FormatException or ArgumentException)
                 {
@@ -178,7 +178,7 @@ public static class AiTestRunner
                 {
                     try
                     {
-                        results.Add((uri, UriNormalizer.Normalize(uri), null));
+                        results.Add((uri, uriNormalizer.Normalize(uri), null));
                     }
                     catch (Exception ex)
                     {
@@ -217,8 +217,8 @@ public static class AiTestRunner
                 total++;
                 try
                 {
-                    string normA = UriNormalizer.Normalize(pair.A);
-                    string normB = UriNormalizer.Normalize(pair.B);
+                    string normA = uriNormalizer.Normalize(pair.A);
+                    string normB = uriNormalizer.Normalize(pair.B);
 
                     if (normA != normB)
                     {
@@ -251,7 +251,7 @@ public static class AiTestRunner
                 string outcome;
                 try
                 {
-                    outcome = UriNormalizer.Normalize(pol.Input);
+                    outcome = uriNormalizer.Normalize(pol.Input);
                 }
                 catch (Exception ex) when (ex is FormatException or ArgumentException)
                 {
@@ -294,11 +294,11 @@ public static class AiTestRunner
             {
                 total += 5;
                 passed += CheckProperty("PROP-IDEMPOTENCE", validNormalizedInputs,
-                    item => UriNormalizer.Normalize(item.Normalized) == item.Normalized,
+                    item => uriNormalizer.Normalize(item.Normalized) == item.Normalized,
                     ref failed);
 
                 passed += CheckProperty("PROP-DETERMINISM", validNormalizedInputs,
-                    item => UriNormalizer.Normalize(item.Input) == item.Normalized,
+                    item => uriNormalizer.Normalize(item.Input) == item.Normalized,
                     ref failed);
 
                 passed += CheckProperty("PROP-ASCII-ONLY", validNormalizedInputs,

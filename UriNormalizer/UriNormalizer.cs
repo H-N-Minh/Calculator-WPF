@@ -2,623 +2,425 @@
 // © SDK GmbH 
 // ------------------------------------------------------------------------------
 
-using System.Globalization;
+using System;
 using System.Text;
-using System.Net;
-using System.Net.Sockets;
 
-namespace BdewUriNormalization;
 
 /// <summary>
-/// Normalizes a URI strictly according to RFC 3986 Sections 6.2.2 and 6.2.3.
+/// Pure URI normalizer implementing RFC 3986 Sections 6.2.2 and 6.2.3
+/// (including Section 5.2.4 dot-segment removal).
 /// </summary>
-public static class UriNormalizer
+public sealed class UriNormalizer
 {
-    public static string Normalize(string input)
+    private const string HexDigits = "0123456789ABCDEF";
+
+    public string Normalize(string uri)
     {
-        // 1. Parse raw components without System.Uri side effects
-        ParsedUri uri = ParseUri(input);
-        ValidateUriComponents(uri);
-
-        // 2. Lowercase scheme (RFC 3986 Section 6.2.2.1)
-        uri.Scheme = uri.Scheme.ToLowerInvariant();
-
-        // Validate HTTP/HTTPS authority requirement
-        if ((uri.Scheme == "http" || uri.Scheme == "https") &&
-            (!uri.HasAuthority || string.IsNullOrEmpty(uri.Host)))
+        if (uri == null)
         {
-            throw new FormatException($"URI with scheme '{uri.Scheme}' must contain a non-empty host.");
+            throw new ArgumentNullException(nameof(uri));
         }
 
-        // 3 & 4. Normalize percent-encoding across all components:
-        //        - Uppercase hex digits (%xx -> %XX) (6.2.2.1)
-        //        - Decode unreserved characters (6.2.2.2)
-        //        Note: Run this on host BEFORE lowercasing host so encoded
-        //        uppercase ASCII letters like %41 ('A') also become lowercase ('a').
-        uri.UserInfo = uri.UserInfo is null ? null : NormalizePercentEncoding(uri.UserInfo);
-        uri.Host = uri.Host is null ? null : NormalizeHostCase(NormalizePercentEncoding(uri.Host));
-        uri.Path = NormalizePercentEncoding(uri.Path);
-        uri.Query = uri.Query is null ? null : NormalizePercentEncoding(uri.Query);
-        uri.Fragment = uri.Fragment is null ? null : NormalizePercentEncoding(uri.Fragment);
+        int end = uri.Length;
 
-        // 5. Remove dot segments from path using RFC 3986 Section 5.2.4 (6.2.2.3)
-        uri.Path = RemoveDotSegments(uri.Path);
-
-        // 6. Scheme-based normalization: default/empty ports & empty path (6.2.3)
-        NormalizeSchemeSpecificParts(ref uri);
-
-        // 7. Reconstruct normalized URI preserving delimiters (?, #, @, trailing '/')
-        return SerializeUri(uri);
-    }
-
-    private static void ValidateUriComponents(ParsedUri uri)
-    {
-        if (uri.UserInfo is not null)
+        // 1. Extract fragment (#...) and query (?...) per RFC 3986 Appendix B
+        int hashIdx = uri.IndexOf('#');
+        bool hasFragment = hashIdx >= 0;
+        string fragment = hasFragment ? uri.Substring(hashIdx + 1) : string.Empty;
+        if (hasFragment)
         {
-            ValidateAllowedChars(uri.UserInfo, "userinfo", static c => IsUnreserved(c) || IsSubDelim(c) || c == ':');
+            end = hashIdx;
         }
 
-        if (uri.HasAuthority && !string.IsNullOrEmpty(uri.Host))
+        int queryIdx = uri.IndexOf('?', 0, end);
+        bool hasQuery = queryIdx >= 0;
+        string query = hasQuery ? uri.Substring(queryIdx + 1, end - queryIdx - 1) : string.Empty;
+        if (hasQuery)
         {
-            ValidateHost(uri.Host);
+            end = queryIdx;
         }
 
-        ValidateAllowedChars(uri.Path, "path", static c => IsPchar(c) || c == '/');
-
-        if (uri.Query is not null)
+        // 2. Extract scheme (must appear before any '/')
+        int pos = 0;
+        bool hasScheme = false;
+        string scheme = string.Empty;
+        for (int i = 0; i < end; i++)
         {
-            ValidateAllowedChars(uri.Query, "query", static c => IsPchar(c) || c == '/' || c == '?');
-        }
-
-        if (uri.Fragment is not null)
-        {
-            ValidateAllowedChars(uri.Fragment, "fragment", static c => IsPchar(c) || c == '/' || c == '?');
-        }
-    }
-
-    private static void ValidateHost(string host)
-    {
-        if (host.StartsWith('['))
-        {
-            if (!IsValidIpLiteral(host))
+            char c = uri[i];
+            if (c == '/')
             {
-                throw new FormatException($"Invalid IP literal in host '{host}'.");
+                break;
             }
-
-            return;
-        }
-
-        ValidateAllowedChars(host, "host", static c => IsUnreserved(c) || IsSubDelim(c));
-    }
-
-    private static bool IsValidIpLiteral(string host)
-    {
-        if (!host.EndsWith(']') || host.Length < 4)
-        {
-            return false;
-        }
-
-        string inner = host[1..^1];
-
-        // IPvFuture = "v" 1*HEXDIG "." 1*( unreserved / sub-delims / ":" )
-        if (inner[0] == 'v' || inner[0] == 'V')
-        {
-            int dot = inner.IndexOf('.');
-            if (dot <= 1 || dot == inner.Length - 1)
+            if (c == ':')
             {
-                return false;
-            }
-
-            for (int i = 1; i < dot; i++)
-            {
-                if (!IsHexDigit(inner[i])) return false;
-            }
-
-            for (int i = dot + 1; i < inner.Length; i++)
-            {
-                char c = inner[i];
-                if (!IsUnreserved(c) && !IsSubDelim(c) && c != ':') return false;
-            }
-
-            return true;
-        }
-
-        // IPv6address: only HEXDIG, ':', '.' allowed per RFC 3986
-        foreach (char c in inner)
-        {
-            if (!IsHexDigit(c) && c != ':' && c != '.')
-            {
-                return false;
-            }
-        }
-
-        return IPAddress.TryParse(inner, out IPAddress? ip) &&
-               ip.AddressFamily == AddressFamily.InterNetworkV6;
-    }
-
-    private static void ValidateAllowedChars(string value, string componentName, Func<char, bool> isAllowed)
-    {
-        for (int i = 0; i < value.Length; i++)
-        {
-            char c = value[i];
-            if (c == '%')
-            {
-                if (i + 2 >= value.Length || !IsHexDigit(value[i + 1]) || !IsHexDigit(value[i + 2]))
+                if (i > 0)
                 {
-                    throw new FormatException($"Invalid percent-encoding in {componentName} at index {i}.");
+                    hasScheme = true;
+                    scheme = NormalizeAsciiLower(uri.Substring(0, i)); // 6.2.2.1
+                    pos = i + 1;
                 }
-
-                i += 2;
-                continue;
-            }
-
-            if (!isAllowed(c))
-            {
-                throw new FormatException($"Invalid character '{c}' (0x{(int)c:X2}) in {componentName}.");
-            }
-        }
-    }
-
-    private static bool IsSubDelim(char c) =>
-        c is '!' or '$' or '&' or '\'' or '(' or ')' or '*' or '+' or ',' or ';' or '=';
-
-    private static bool IsPchar(char c) =>
-        IsUnreserved(c) || IsSubDelim(c) || c == ':' || c == '@';
-
-    private static ParsedUri ParseUri(string input)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(input);
-
-        for (int i = 0; i < input.Length; i++)
-        {
-            if (char.IsControl(input[i]) || char.IsWhiteSpace(input[i]))
-            {
-                throw new FormatException("URI must not contain whitespace or control characters.");
+                break;
             }
         }
 
-        // Split #fragment
-        int fragmentIndex = input.IndexOf('#');
-        bool hasFragment = fragmentIndex >= 0;
-        string? fragment = hasFragment ? input[(fragmentIndex + 1)..] : null;
-        if (fragment is not null && fragment.Contains('#'))
-        {
-            throw new FormatException("URI fragment must not contain '#'.");
-        }
-
-        string beforeFragment = hasFragment ? input[..fragmentIndex] : input;
-
-        // Split ?query
-        int queryIndex = beforeFragment.IndexOf('?');
-        bool hasQuery = queryIndex >= 0;
-        string? query = hasQuery ? beforeFragment[(queryIndex + 1)..] : null;
-        string beforeQuery = hasQuery ? beforeFragment[..queryIndex] : beforeFragment;
-
-        // Split scheme:hier-part
-        int colonIndex = beforeQuery.IndexOf(':');
-        if (colonIndex <= 0)
-        {
-            throw new FormatException("URI must begin with a valid scheme followed by ':'.");
-        }
-
-        string scheme = beforeQuery[..colonIndex];
-        if (!IsValidScheme(scheme))
-        {
-            throw new FormatException($"Invalid URI scheme '{scheme}'.");
-        }
-
-        string hierPart = beforeQuery[(colonIndex + 1)..];
-
-        // Split //authority and path
-        bool hasAuthority = hierPart.StartsWith("//", StringComparison.Ordinal);
-        string? userInfo = null;
-        string? host = null;
+        // 3. Extract authority (//...)
+        bool hasAuthority = pos + 1 < end && uri[pos] == '/' && uri[pos + 1] == '/';
+        bool hasUserinfo = false;
+        string userinfo = string.Empty;
+        string host = string.Empty;
         bool hasPort = false;
-        string? port = null;
-        string path;
+        string port = string.Empty;
 
         if (hasAuthority)
         {
-            string afterDoubleSlash = hierPart[2..];
-            int pathStart = afterDoubleSlash.IndexOf('/');
-            string authority = pathStart >= 0 ? afterDoubleSlash[..pathStart] : afterDoubleSlash;
-            path = pathStart >= 0 ? afterDoubleSlash[pathStart..] : string.Empty;
+            pos += 2;
+            int slashIdx = uri.IndexOf('/', pos, end - pos);
+            int authEnd = slashIdx >= 0 ? slashIdx : end;
+            string authority = uri.Substring(pos, authEnd - pos);
+            pos = authEnd;
 
-            (userInfo, host, hasPort, port) = ParseAuthority(authority);
+            int atIdx = authority.LastIndexOf('@');
+            int hostStart = 0;
+            if (atIdx >= 0)
+            {
+                hasUserinfo = true;
+                userinfo = NormalizePercentEncoding(authority.Substring(0, atIdx), false);
+                hostStart = atIdx + 1;
+            }
+
+            int colonIdx = FindPortColon(authority, hostStart);
+            if (colonIdx >= 0)
+            {
+                // Percent-decode unreserved chars BEFORE lowercasing host (e.g. %45 -> E -> e)
+                host = NormalizePercentEncoding(authority.Substring(hostStart, colonIdx - hostStart), true);
+                port = authority.Substring(colonIdx + 1);
+                hasPort = !IsEmptyOrDefaultPort(scheme, port); // 6.2.3
+            }
+            else
+            {
+                host = NormalizePercentEncoding(authority.Substring(hostStart), true);
+            }
+
+            // 6.2.3: empty authority default for "file" when userinfo and port are absent
+            if (hasScheme && scheme == "file" && !hasUserinfo && !hasPort && host == "localhost")
+            {
+                host = string.Empty;
+            }
+        }
+
+        // 4. Normalize path: percent-encoding (6.2.2.2) BEFORE dot-segments (6.2.2.3 / 5.2.4)
+        string path = uri.Substring(pos, end - pos);
+        if (hasScheme && scheme == "mailto" && !hasAuthority)
+        {
+            path = NormalizeMailtoPath(path); // 6.2.3
         }
         else
         {
-            path = hierPart;
+            path = NormalizePercentEncoding(path, false);
+            path = RemoveDotSegments(path);
         }
 
-        return new ParsedUri
+        // 6.2.3: empty path with authority normalizes to "/"
+        if (hasAuthority && path.Length == 0)
         {
-            Scheme = scheme,
-            HasAuthority = hasAuthority,
-            UserInfo = userInfo,
-            Host = host,
-            HasPort = hasPort,
-            Port = port,
-            Path = path,
-            HasQuery = hasQuery,
-            Query = query,
-            HasFragment = hasFragment,
-            Fragment = fragment
-        };
+            path = "/";
+        }
+
+        // 5. Normalize query & fragment (keep empty '?' and '#' delimiters per 6.2.3)
+        if (hasQuery)
+        {
+            query = NormalizePercentEncoding(query, false);
+        }
+        if (hasFragment)
+        {
+            fragment = NormalizePercentEncoding(fragment, false);
+        }
+
+        // 6. Reassemble
+        var output = new StringBuilder(uri.Length);
+        if (hasScheme)
+        {
+            output.Append(scheme).Append(':');
+        }
+        if (hasAuthority)
+        {
+            output.Append("//");
+            if (hasUserinfo)
+            {
+                output.Append(userinfo).Append('@');
+            }
+            output.Append(host);
+            if (hasPort)
+            {
+                output.Append(':').Append(port);
+            }
+        }
+        output.Append(path);
+        if (hasQuery)
+        {
+            output.Append('?').Append(query);
+        }
+        if (hasFragment)
+        {
+            output.Append('#').Append(fragment);
+        }
+
+        return output.ToString();
     }
 
-    private static (string? UserInfo, string Host, bool HasPort, string? Port) ParseAuthority(string authority)
+    // 6.2.2.1 & 6.2.2.2: Decode unreserved %XX, uppercase remaining %XX, optionally lowercase ASCII
+    private static string NormalizePercentEncoding(string s, bool lowercaseAscii)
     {
-        if (authority.Length == 0)
+        int len = s.Length;
+        StringBuilder? sb = null;
+        for (int i = 0; i < len; i++)
         {
-            return (null, string.Empty, false, null);
-        }
-
-        string? userInfo = null;
-        string hostPort = authority;
-
-        int atIndex = authority.IndexOf('@');
-        if (atIndex >= 0)
-        {
-            if (authority.IndexOf('@', atIndex + 1) >= 0)
+            char c = s[i];
+            if (c == '%' && i + 2 < len)
             {
-                throw new FormatException("Invalid URI authority: multiple '@' characters.");
-            }
-
-            userInfo = authority[..atIndex];
-            hostPort = authority[(atIndex + 1)..];
-        }
-
-        string host;
-        bool hasPort = false;
-        string? port = null;
-
-        // Handle IPv6 / IP-literal enclosed in [...]
-        if (hostPort.StartsWith('['))
-        {
-            int closeBracket = hostPort.IndexOf(']');
-            if (closeBracket < 0)
-            {
-                throw new FormatException("Invalid URI host: missing closing ']'.");
-            }
-
-            host = hostPort[..(closeBracket + 1)];
-
-            if (closeBracket < hostPort.Length - 1)
-            {
-                if (hostPort[closeBracket + 1] != ':')
+                int hi = HexValue(s[i + 1]);
+                int lo = HexValue(s[i + 2]);
+                if (hi >= 0 && lo >= 0)
                 {
-                    throw new FormatException("Invalid URI authority after IP literal.");
+                    int b = (hi << 4) | lo;
+                    if (IsUnreserved(b))
+                    {
+                        if (sb == null)
+                        {
+                            sb = new StringBuilder(len);
+                            sb.Append(s, 0, i);
+                        }
+                        char decoded = (char)b;
+                        if (lowercaseAscii && decoded >= 'A' && decoded <= 'Z')
+                        {
+                            decoded = (char)(decoded + 32);
+                        }
+                        sb.Append(decoded);
+                    }
+                    else
+                    {
+                        char upperHi = HexDigits[hi];
+                        char upperLo = HexDigits[lo];
+                        if (sb != null || upperHi != s[i + 1] || upperLo != s[i + 2])
+                        {
+                            if (sb == null)
+                            {
+                                sb = new StringBuilder(len);
+                                sb.Append(s, 0, i);
+                            }
+                            sb.Append('%').Append(upperHi).Append(upperLo);
+                        }
+                    }
+                    i += 2;
+                    continue;
                 }
-
-                hasPort = true;
-                port = hostPort[(closeBracket + 2)..];
             }
-        }
-        else
-        {
-            int colonIndex = hostPort.IndexOf(':');
-            if (colonIndex >= 0)
+
+            if (lowercaseAscii && c >= 'A' && c <= 'Z')
             {
-                if (hostPort.IndexOf(':', colonIndex + 1) >= 0)
+                if (sb == null)
                 {
-                    throw new FormatException("Invalid URI authority: multiple ':' characters.");
+                    sb = new StringBuilder(len);
+                    sb.Append(s, 0, i);
                 }
-
-                host = hostPort[..colonIndex];
-                hasPort = true;
-                port = hostPort[(colonIndex + 1)..];
+                sb.Append((char)(c + 32));
             }
-            else
+            else if (sb != null)
             {
-                host = hostPort;
-            }
-
-            if (host.Contains('[') || host.Contains(']'))
-            {
-                throw new FormatException("Invalid '[' or ']' in URI host.");
+                sb.Append(c);
             }
         }
 
-        if (hasPort && !IsDigitsOnly(port!))
-        {
-            throw new FormatException($"Invalid URI port '{port}'.");
-        }
-
-        return (userInfo, host, hasPort, port);
+        return sb == null ? s : sb.ToString();
     }
 
-    private static string NormalizePercentEncoding(string input)
-    {
-        if (!input.Contains('%'))
-        {
-            return input;
-        }
-
-        var result = new StringBuilder(input.Length);
-
-        for (int i = 0; i < input.Length; i++)
-        {
-            if (input[i] != '%')
-            {
-                result.Append(input[i]);
-                continue;
-            }
-
-            if (i + 2 >= input.Length ||
-                !IsHexDigit(input[i + 1]) ||
-                !IsHexDigit(input[i + 2]))
-            {
-                throw new FormatException($"Invalid percent-encoding in '{input}' at index {i}.");
-            }
-
-            int octet = (HexValue(input[i + 1]) << 4) | HexValue(input[i + 2]);
-            char decoded = (char)octet;
-
-            if (IsUnreserved(decoded))
-            {
-                result.Append(decoded);
-            }
-            else
-            {
-                result.Append('%');
-                result.Append(char.ToUpperInvariant(input[i + 1]));
-                result.Append(char.ToUpperInvariant(input[i + 2]));
-            }
-
-            i += 2;
-        }
-
-        return result.ToString();
-    }
-
-    private static string NormalizeHostCase(string host)
-    {
-        // Lowercases host characters while keeping %XX hex digits uppercase.
-        var result = new StringBuilder(host.Length);
-
-        for (int i = 0; i < host.Length; i++)
-        {
-            if (host[i] == '%' && i + 2 < host.Length)
-            {
-                result.Append('%');
-                result.Append(char.ToUpperInvariant(host[i + 1]));
-                result.Append(char.ToUpperInvariant(host[i + 2]));
-                i += 2;
-            }
-            else
-            {
-                result.Append(char.ToLowerInvariant(host[i]));
-            }
-        }
-
-        return result.ToString();
-    }
-
-    // Exact implementation of RFC 3986 Section 5.2.4 (remove_dot_segments)
+    // 5.2.4: O(N) cursor-based remove_dot_segments
     private static string RemoveDotSegments(string path)
     {
-        if (string.IsNullOrEmpty(path))
+        if (path.IndexOf('.') < 0)
         {
             return path;
         }
 
-        string input = path;
-        var output = new StringBuilder(path.Length);
+        int len = path.Length;
+        var output = new StringBuilder(len);
+        int i = 0;
 
-        while (input.Length > 0)
+        while (i < len)
         {
-            // 2A: If input begins with "../" or "./", remove that prefix.
-            if (input.StartsWith("../", StringComparison.Ordinal))
+            if (StartsWithAt(path, i, "../"))                          // 2A
             {
-                input = input[3..];
+                i += 3;
             }
-            else if (input.StartsWith("./", StringComparison.Ordinal))
+            else if (StartsWithAt(path, i, "./"))                      // 2A
             {
-                input = input[2..];
+                i += 2;
             }
-            // 2B: If input begins with "/./" or is "/.", replace prefix with "/".
-            else if (input.StartsWith("/./", StringComparison.Ordinal))
+            else if (StartsWithAt(path, i, "/./"))                     // 2B
             {
-                input = input[2..];
+                i += 2;
             }
-            else if (input == "/.")
+            else if (i + 2 == len && StartsWithAt(path, i, "/."))      // 2B
             {
-                input = "/";
+                output.Append('/');
+                break;
             }
-            // 2C: If input begins with "/../" or is "/..", replace prefix with "/"
-            //     and remove last segment and its preceding "/" from output.
-            else if (input.StartsWith("/../", StringComparison.Ordinal))
+            else if (StartsWithAt(path, i, "/../"))                    // 2C
             {
-                input = input[3..];
-                RemoveLastSegment(output);
+                PopSegment(output);
+                i += 3;
             }
-            else if (input == "/..")
+            else if (i + 3 == len && StartsWithAt(path, i, "/.."))     // 2C
             {
-                input = "/";
-                RemoveLastSegment(output);
+                PopSegment(output);
+                output.Append('/');
+                break;
             }
-            // 2D: If input consists only of "." or "..", remove it.
-            else if (input == "." || input == "..")
+            else if ((i + 1 == len && path[i] == '.')                  // 2D
+                  || (i + 2 == len && StartsWithAt(path, i, "..")))
             {
-                input = string.Empty;
+                break;
             }
-            // 2E: Move the first path segment (including initial '/' if any) to output.
-            else
+            else                                                       // 2E
             {
-                int searchStart = input.StartsWith('/') ? 1 : 0;
-                int nextSlash = input.IndexOf('/', searchStart);
-
-                if (nextSlash < 0)
+                int start = i;
+                if (path[i] == '/')
                 {
-                    output.Append(input);
-                    input = string.Empty;
+                    i++;
                 }
-                else
-                {
-                    output.Append(input, 0, nextSlash);
-                    input = input[nextSlash..];
-                }
+                int nextSlash = path.IndexOf('/', i);
+                int segmentEnd = nextSlash < 0 ? len : nextSlash;
+                output.Append(path, start, segmentEnd - start);
+                i = segmentEnd;
             }
         }
 
         return output.ToString();
     }
 
-    private static void RemoveLastSegment(StringBuilder output)
+    private static bool StartsWithAt(string s, int index, string prefix)
     {
-        for (int i = output.Length - 1; i >= 0; i--)
+        return index + prefix.Length <= s.Length
+            && string.CompareOrdinal(s, index, prefix, 0, prefix.Length) == 0;
+    }
+
+    private static void PopSegment(StringBuilder output)
+    {
+        int i = output.Length - 1;
+        while (i >= 0 && output[i] != '/')
         {
-            if (output[i] == '/')
+            i--;
+        }
+        output.Length = i >= 0 ? i : 0;
+    }
+
+    private static string NormalizeMailtoPath(string path)
+    {
+        int atIdx = path.LastIndexOf('@');
+        if (atIdx < 0)
+        {
+            return NormalizePercentEncoding(path, false);
+        }
+
+        return NormalizePercentEncoding(path.Substring(0, atIdx), false)
+             + '@'
+             + NormalizePercentEncoding(path.Substring(atIdx + 1), true);
+    }
+
+    private static int FindPortColon(string authority, int hostStart)
+    {
+        int len = authority.Length;
+        if (hostStart < len && authority[hostStart] == '[') // IPv6 / IP-literal
+        {
+            int closeBracket = authority.IndexOf(']', hostStart);
+            if (closeBracket < 0)
             {
-                output.Length = i;
-                return;
+                return -1;
             }
+            int next = closeBracket + 1;
+            return next < len && authority[next] == ':' ? next : -1;
         }
-
-        output.Length = 0;
+        return authority.IndexOf(':', hostStart);
     }
 
-    private static void NormalizeSchemeSpecificParts(ref ParsedUri uri)
-    {
-        // Remove empty port (e.g. "http://example.com:/") or default port for http/https
-        if (uri.HasPort && ShouldRemovePort(uri.Scheme, uri.Port!))
-        {
-            uri.HasPort = false;
-            uri.Port = null;
-        }
-
-        // Normalize empty path to "/" when an authority is present
-        if (uri.HasAuthority && uri.Path.Length == 0)
-        {
-            uri.Path = "/";
-        }
-    }
-
-    private static bool ShouldRemovePort(string scheme, string port)
+    private static bool IsEmptyOrDefaultPort(string scheme, string port)
     {
         if (port.Length == 0)
         {
             return true;
         }
 
-        if (int.TryParse(port, NumberStyles.None, CultureInfo.InvariantCulture, out int portNumber))
-        {
-            return (scheme == "http" && portNumber == 80) ||
-                   (scheme == "https" && portNumber == 443);
-        }
-
-        return false;
-    }
-
-    private static string SerializeUri(ParsedUri uri)
-    {
-        var sb = new StringBuilder();
-        sb.Append(uri.Scheme);
-        sb.Append(':');
-
-        if (uri.HasAuthority)
-        {
-            sb.Append("//");
-
-            if (uri.UserInfo is not null)
-            {
-                sb.Append(uri.UserInfo);
-                sb.Append('@');
-            }
-
-            sb.Append(uri.Host);
-
-            if (uri.HasPort)
-            {
-                sb.Append(':');
-                sb.Append(uri.Port);
-            }
-        }
-
-        sb.Append(uri.Path);
-
-        if (uri.HasQuery)
-        {
-            sb.Append('?');
-            sb.Append(uri.Query);
-        }
-
-        if (uri.HasFragment)
-        {
-            sb.Append('#');
-            sb.Append(uri.Fragment);
-        }
-
-        return sb.ToString();
-    }
-
-    private static bool IsValidScheme(string scheme)
-    {
-        if (scheme.Length == 0 || !IsAsciiLetter(scheme[0]))
+        string defaultPort = DefaultPort(scheme);
+        if (defaultPort.Length == 0)
         {
             return false;
         }
 
-        for (int i = 1; i < scheme.Length; i++)
+        int start = 0;
+        int len = port.Length;
+        while (start < len - 1 && port[start] == '0') // e.g. :080 -> 80
         {
-            char c = scheme[i];
-            if (!IsAsciiLetter(c) && !IsAsciiDigit(c) && c != '+' && c != '-' && c != '.')
-            {
-                return false;
-            }
+            start++;
         }
 
-        return true;
+        return (len - start) == defaultPort.Length
+            && string.CompareOrdinal(port, start, defaultPort, 0, defaultPort.Length) == 0;
     }
 
-    private static bool IsUnreserved(char c) =>
-        IsAsciiLetter(c) ||
-        IsAsciiDigit(c) ||
-        c == '-' || c == '.' || c == '_' || c == '~';
-
-    private static bool IsAsciiLetter(char c) =>
-        (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
-
-    private static bool IsAsciiDigit(char c) =>
-        c >= '0' && c <= '9';
-
-    private static bool IsDigitsOnly(string value)
+    private static string DefaultPort(string scheme)
     {
-        foreach (char c in value)
+        switch (scheme)
         {
-            if (!IsAsciiDigit(c))
+            case "http":
+            case "ws":
+                return "80";
+            case "https":
+            case "wss":
+                return "443";
+            case "ftp":
+                return "21";
+            default:
+                return string.Empty;
+        }
+    }
+
+    private static string NormalizeAsciiLower(string s)
+    {
+        int len = s.Length;
+        StringBuilder? sb = null;
+        for (int i = 0; i < len; i++)
+        {
+            char c = s[i];
+            if (c >= 'A' && c <= 'Z')
             {
-                return false;
+                if (sb == null)
+                {
+                    sb = new StringBuilder(len);
+                    sb.Append(s, 0, i);
+                }
+                sb.Append((char)(c + 32));
+            }
+            else if (sb != null)
+            {
+                sb.Append(c);
             }
         }
-
-        return true;
+        return sb == null ? s : sb.ToString();
     }
 
-    private static bool IsHexDigit(char c) =>
-        IsAsciiDigit(c) || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f');
-
-    private static int HexValue(char c) => c switch
+    private static bool IsUnreserved(int b)
     {
-        >= '0' and <= '9' => c - '0',
-        >= 'A' and <= 'F' => c - 'A' + 10,
-        >= 'a' and <= 'f' => c - 'a' + 10,
-        _ => throw new FormatException($"Invalid hex digit '{c}'.")
-    };
+        return (b >= 'A' && b <= 'Z')
+            || (b >= 'a' && b <= 'z')
+            || (b >= '0' && b <= '9')
+            || b == '-' || b == '.' || b == '_' || b == '~';
+    }
 
-    private struct ParsedUri
+    private static int HexValue(char c)
     {
-        public string Scheme;
-        public bool HasAuthority;
-        public string? UserInfo;
-        public string? Host;
-        public bool HasPort;
-        public string? Port;
-        public string Path;
-        public bool HasQuery;
-        public string? Query;
-        public bool HasFragment;
-        public string? Fragment;
+        if (c >= '0' && c <= '9') return c - '0';
+        if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+        if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+        return -1;
     }
 }
