@@ -672,8 +672,8 @@
         },
         {
           "id": "COMB-006",
-          "input": "https://api.example.de/v1/maloIdent/./check/%2e%2e/verify?callback=/v1/../v2\u0026tag=b\u0026tag=a",
-          "expected": "https://api.example.de/v1/verify?callback=/v1/../v2\u0026tag=b\u0026tag=a",
+          "input": "https://api.example.de/v1/maloIdent/./check/%2e%2e/verify?callback=/v1/../v2&tag=b&tag=a",
+          "expected": "https://api.example.de/v1/maloIdent/verify?callback=/v1/../v2&tag=b&tag=a",
           "purpose": "BDEW API URI: path dot-segments removed while query dot-segments and query parameter order/duplicates remain untouched."
         },
         {

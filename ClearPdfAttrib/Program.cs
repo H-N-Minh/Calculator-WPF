@@ -199,9 +199,9 @@ internal static class Program
             Options:
               --parallel <n>               Number of parallel worker tasks (default: 4, max: 64)
               --dry-run                    Scan and report without modifying any files
-              --skip-signed                Do not modify digitally signed PDFs
-              --error-log <path>           Path to error log file (default: ClearPdfAttrib-errors-<timestamp>.log)
-              --progress-interval <n>      Print progress every N processed files (default: 10000)
+              --skip-signed                Skip digitally signed PDFs without logging as errors
+              --error-log <path>           Path to error log file (Final path is printed in the summary after completion)
+              --progress-interval <n>      Print progress every N processed files 
               --retries <n>                Retries on transient SMB/IO errors (default: 3)
               --ignore-inaccessible-dirs   Skip folders with permission errors without logging directory failures
               -h, --help                   Show this help message
