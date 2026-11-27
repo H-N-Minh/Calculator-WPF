@@ -89,9 +89,9 @@
     "Mask": "URI_NORMALIZE_PORT",
     "IsPartialMaskTest": false,
     "IsRelativeUri": false,
-    "Input": "scheme://host:00/",
-    "ExpectedUriparser622": "scheme://host:0/",
-    "ExpectedRfc3986_622_623": "scheme://host:00/",
+    "Input": "http://host:00/",
+    "ExpectedUriparser622": "http://host:0/",
+    "ExpectedRfc3986_622_623": "http://host:00/",
     "Note": "uriparser strips leading zeros from ports (beyond strict 6.2.2 wording)."
   },
   {
@@ -99,9 +99,9 @@
     "Mask": "URI_NORMALIZE_PORT",
     "IsPartialMaskTest": false,
     "IsRelativeUri": false,
-    "Input": "scheme://host:00080/",
-    "ExpectedUriparser622": "scheme://host:80/",
-    "ExpectedRfc3986_622_623": "scheme://host:00080/",
+    "Input": "http://host:00080/",
+    "ExpectedUriparser622": "http://host:80/",
+    "ExpectedRfc3986_622_623": "http://host/",
     "Note": "uriparser strips leading zeros from ports (beyond strict 6.2.2 wording)."
   },
   {
