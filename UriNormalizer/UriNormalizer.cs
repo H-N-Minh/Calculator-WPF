@@ -29,49 +29,9 @@ public static class UriNormalizer
             scheme = NormalizeAsciiLower(scheme);        // 6.2.2.1
 
         // 3. Extract authority (//...)
-        bool hasAuthority = unprocessedStart + 1 < unprocessedEnd && uri[unprocessedStart] == '/' && uri[unprocessedStart + 1] == '/';
-        bool hasUserinfo = false;
-        string userinfo = string.Empty;
-        string host = string.Empty;
-        bool hasPort = false;
-        string port = string.Empty;
-
-        if (hasAuthority)
-        {
-            unprocessedStart += 2;
-            int slashIdx = uri.IndexOf('/', unprocessedStart, unprocessedEnd - unprocessedStart);
-            int authEnd = slashIdx >= 0 ? slashIdx : unprocessedEnd;
-            string authority = uri.Substring(unprocessedStart, authEnd - unprocessedStart);
-            unprocessedStart = authEnd;
-
-            int atIdx = authority.LastIndexOf('@');
-            int hostStart = 0;
-            if (atIdx >= 0)
-            {
-                hasUserinfo = true;
-                userinfo = NormalizePercentEncoding(authority.Substring(0, atIdx), false);
-                hostStart = atIdx + 1;
-            }
-
-            int colonIdx = Utility.FindPortColon(authority, hostStart);
-            if (colonIdx >= 0)
-            {
-                // Percent-decode unreserved chars BEFORE lowercasing host (e.g. %45 -> E -> e)
-                host = NormalizePercentEncoding(authority.Substring(hostStart, colonIdx - hostStart), true);
-                port = authority.Substring(colonIdx + 1);
-                hasPort = !IsEmptyOrDefaultPort(scheme, port); // 6.2.3
-            }
-            else
-            {
-                host = NormalizePercentEncoding(authority.Substring(hostStart), true);
-            }
-
-            // 6.2.3: empty authority default for "file" when userinfo and port are absent
-            if (hasScheme && scheme == "file" && !hasUserinfo && !hasPort && host == "localhost")
-            {
-                host = string.Empty;
-            }
-        }
+        bool hasAuthority, hasUserinfo, hasPort;
+        string userinfo, host, port;
+        ExtractAuthority(uri, ref unprocessedStart, unprocessedEnd, scheme, hasScheme, out hasAuthority, out hasUserinfo, out userinfo, out host, out hasPort, out port);
 
         // 4. Normalize path: percent-encoding (6.2.2.2) BEFORE dot-segments (6.2.2.3 / 5.2.4)
         string path = uri.Substring(unprocessedStart, unprocessedEnd - unprocessedStart);
@@ -134,7 +94,60 @@ public static class UriNormalizer
 
     }
 
-    // 6.2.2.1 & 6.2.2.2: Decode unreserved %XX, uppercase reserved %XX. Optionally lowercase ASCII (including the decoded %XX)
+    private static void ExtractAuthority(string uri, ref int unprocessedStart, int unprocessedEnd, string scheme, bool hasScheme,
+                                        out bool hasAuthority,
+                                        out bool hasUserinfo,
+                                        out string userinfo,
+                                        out string host,
+                                        out bool hasPort,
+                                        out string port)
+    {
+        hasAuthority = unprocessedStart + 1 < unprocessedEnd && uri[unprocessedStart] == '/' && uri[unprocessedStart + 1] == '/';
+        hasUserinfo = false;
+        userinfo = string.Empty;
+        host = string.Empty;
+        hasPort = false;
+        port = string.Empty;
+
+        if (!hasAuthority)
+            return;
+
+        unprocessedStart += 2;
+        int slashIdx = uri.IndexOf('/', unprocessedStart, unprocessedEnd - unprocessedStart);
+        int authEnd = slashIdx >= 0 ? slashIdx : unprocessedEnd;
+        string authority = uri.Substring(unprocessedStart, authEnd - unprocessedStart);
+        unprocessedStart = authEnd;
+
+        int atIdx = authority.LastIndexOf('@');
+        int hostStart = 0;
+        if (atIdx >= 0)
+        {
+            hasUserinfo = true;
+            userinfo = NormalizePercentEncoding(authority.Substring(0, atIdx), false);
+            hostStart = atIdx + 1;
+        }
+
+        int colonIdx = Utility.FindPortColon(authority, hostStart);
+        if (colonIdx >= 0)
+        {
+            // Percent-decode unreserved chars BEFORE lowercasing host (e.g. %45 -> E -> e)
+            host = NormalizePercentEncoding(authority.Substring(hostStart, colonIdx - hostStart), true);
+            port = authority.Substring(colonIdx + 1);
+            hasPort = !IsEmptyOrDefaultPort(scheme, port); // 6.2.3
+        }
+        else
+        {
+            host = NormalizePercentEncoding(authority.Substring(hostStart), true);
+        }
+
+        // 6.2.3: empty authority default for "file" when userinfo and port are absent
+        if (hasScheme && scheme == "file" && !hasUserinfo && !hasPort && host == "localhost")
+        {
+            host = string.Empty;
+        }
+    }
+
+    /// <summary> 6.2.2.1 & 6.2.2.2: Decode unreserved %XX, uppercase reserved %XX. Optionally lowercase ASCII (including the decoded %XX) </summary>
     private static string NormalizePercentEncoding(string s, bool lowercaseAscii)
     {
         StringBuilder? sb = null;
