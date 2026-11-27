@@ -18,50 +18,18 @@ public static class UriNormalizer
     {
         ArgumentNullException.ThrowIfNull(uri);
 
-        int end = uri.Length;
+        int unprocessedStart = 0;
+        int unprocessedEnd = uri.Length;
 
-        // 1. Extract fragment (#...) and query (?...) per RFC 3986 Appendix B
-        int hashIdx = uri.IndexOf('#');
-        bool hasFragment = hashIdx >= 0;
-        string fragment = hasFragment ? uri.Substring(hashIdx + 1) : string.Empty;
-        if (hasFragment)
-        {
-            end = hashIdx;
-        }
+        string fragment = Utility.ExtractSubstringUsingDeli(uri, ref unprocessedEnd, '#', out bool hasFragment);
+        string query = Utility.ExtractSubstringUsingDeli(uri, ref unprocessedEnd, '?', out bool hasQuery);
+        string scheme = Utility.ExtractSchemeFromUri(uri, ref unprocessedStart, unprocessedEnd, out bool hasScheme);
 
-        int queryIdx = uri.IndexOf('?', 0, end);
-        bool hasQuery = queryIdx >= 0;
-        string query = hasQuery ? uri.Substring(queryIdx + 1, end - queryIdx - 1) : string.Empty;
-        if (hasQuery)
-        {
-            end = queryIdx;
-        }
-
-        // 2. Extract scheme (must appear before any '/')
-        int pos = 0;
-        bool hasScheme = false;
-        string scheme = string.Empty;
-        for (int i = 0; i < end; i++)
-        {
-            char c = uri[i];
-            if (c == '/')
-            {
-                break;
-            }
-            if (c == ':')
-            {
-                if (i > 0)
-                {
-                    hasScheme = true;
-                    scheme = NormalizeAsciiLower(uri.Substring(0, i)); // 6.2.2.1
-                    pos = i + 1;
-                }
-                break;
-            }
-        }
+        if (hasScheme)
+            scheme = NormalizeAsciiLower(scheme);        // 6.2.2.1
 
         // 3. Extract authority (//...)
-        bool hasAuthority = pos + 1 < end && uri[pos] == '/' && uri[pos + 1] == '/';
+        bool hasAuthority = unprocessedStart + 1 < unprocessedEnd && uri[unprocessedStart] == '/' && uri[unprocessedStart + 1] == '/';
         bool hasUserinfo = false;
         string userinfo = string.Empty;
         string host = string.Empty;
@@ -70,11 +38,11 @@ public static class UriNormalizer
 
         if (hasAuthority)
         {
-            pos += 2;
-            int slashIdx = uri.IndexOf('/', pos, end - pos);
-            int authEnd = slashIdx >= 0 ? slashIdx : end;
-            string authority = uri.Substring(pos, authEnd - pos);
-            pos = authEnd;
+            unprocessedStart += 2;
+            int slashIdx = uri.IndexOf('/', unprocessedStart, unprocessedEnd - unprocessedStart);
+            int authEnd = slashIdx >= 0 ? slashIdx : unprocessedEnd;
+            string authority = uri.Substring(unprocessedStart, authEnd - unprocessedStart);
+            unprocessedStart = authEnd;
 
             int atIdx = authority.LastIndexOf('@');
             int hostStart = 0;
@@ -106,7 +74,7 @@ public static class UriNormalizer
         }
 
         // 4. Normalize path: percent-encoding (6.2.2.2) BEFORE dot-segments (6.2.2.3 / 5.2.4)
-        string path = uri.Substring(pos, end - pos);
+        string path = uri.Substring(unprocessedStart, unprocessedEnd - unprocessedStart);
         if (hasScheme && scheme == "mailto" && !hasAuthority)
         {
             path = NormalizeMailtoPath(path); // 6.2.3
@@ -163,6 +131,7 @@ public static class UriNormalizer
         }
 
         return output.ToString();
+
     }
 
     // 6.2.2.1 & 6.2.2.2: Decode unreserved %XX, uppercase reserved %XX. Optionally lowercase ASCII (including the decoded %XX)
@@ -242,7 +211,10 @@ public static class UriNormalizer
         }
     }
 
-    // 5.2.4: O(N) cursor-based remove_dot_segments (with RFC 3986 §3.3 '//' guard when !hasAuthority)
+    /// <summary>  Resolves . (current directory) and .. (parent directory) segments in a path
+    ///     /a/b/c/./../../g → /a/g
+    /// using the official RFC 3986 §5.2.4 algorithm
+    /// </summary>
     private static string RemoveDotSegments(string path, bool hasAuthority)
     {
         if (path.IndexOf('.') < 0)
@@ -451,5 +423,50 @@ public static class Utility
             return next < len && authority[next] == ':' ? next : -1;
         }
         return authority.IndexOf(':', hostStart);
+    }
+
+    /// <summary> Cut the string in 2 halves at the first 'deli'. The second halve is marked as processed, so unprocessedEnd will be updated to the index of 'deli'
+    /// The second half will be extracted as the substring.
+    /// </summary>
+    public static string ExtractSubstringUsingDeli(string s, ref int unprocessedEnd, char deli, out bool hasSubstring)
+    {
+        int substringStartIndex = s.IndexOf(deli, 0, unprocessedEnd);
+        hasSubstring = substringStartIndex >= 0;
+        string substring = hasSubstring
+            ? s.Substring(substringStartIndex + 1, unprocessedEnd - substringStartIndex - 1)
+            : string.Empty;
+        if (hasSubstring)
+        {
+            unprocessedEnd = substringStartIndex;
+        }
+
+        return substring;
+    }
+
+    /// <summary> Scheme is the part before the first ':'. If we reach '/' before ':', then no scheme exists in the given uri </summary>
+    public static string ExtractSchemeFromUri(string uri, ref int unprocessedStart, int unprocessedEnd, out bool hasScheme)
+    {
+        string scheme = string.Empty;
+        hasScheme = false;
+
+        for (int i = 0; i < unprocessedEnd; i++)
+        {
+            char c = uri[i];
+            if (c == '/')
+                break;
+
+            if (c == ':')
+            {
+                if (i > 0)
+                {
+                    hasScheme = true;
+                    scheme = uri.Substring(unprocessedStart, i);
+                    unprocessedStart = i + 1;
+                }
+                break;
+            }
+        }
+
+        return scheme;
     }
 }
